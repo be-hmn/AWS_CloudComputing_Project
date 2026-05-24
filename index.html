@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>멘토링매치 — 멘토링 매칭 시스템</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- 상단 네비게이션 -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo" onclick="showPage('home')" style="cursor:pointer">🎓 <span>멘토링매치</span></div>
+      <nav class="nav-menu" id="nav-menu">
+        <!-- JS가 채웁니다 -->
+      </nav>
+      <div class="header-right">
+        <div id="auth-status">
+          <button class="btn-auth-outline" onclick="openAuthModal('login')">로그인</button>
+        </div>
+        <button class="hamburger" onclick="toggleMenu()">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 홈 페이지 -->
+  <div id="page-home" class="page active">
+    <section class="hero-section">
+      <div class="hero-cards">
+        <div class="hero-card">
+          <div class="hero-icon">💬</div>
+          <p class="hero-text">1:1 커리어 상담받기</p>
+        </div>
+        <div class="hero-card-group">
+          <div class="hero-card-small">
+            <div class="hero-icon-sm">📄</div>
+            <p>자소서·포폴 상담받기</p>
+          </div>
+          <div class="hero-card-small">
+            <div class="hero-icon-sm">🤝</div>
+            <p>딱 맞는 멘토 소개받기</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="category-section">
+      <div class="container">
+        <div class="category-grid">
+          <div class="category-item" onclick="filterByField('웹개발')">
+            <div class="category-icon">💻</div>
+            <span>웹개발</span>
+          </div>
+          <div class="category-item" onclick="filterByField('프론트엔드')">
+            <div class="category-icon">🎨</div>
+            <span>프론트엔드</span>
+          </div>
+          <div class="category-item" onclick="filterByField('백엔드')">
+            <div class="category-icon">⚙️</div>
+            <span>백엔드</span>
+          </div>
+          <div class="category-item" onclick="filterByField('데이터분석')">
+            <div class="category-icon">📊</div>
+            <span>데이터분석</span>
+          </div>
+          <div class="category-item" onclick="filterByField('클라우드')">
+            <div class="category-icon">☁️</div>
+            <span>클라우드</span>
+          </div>
+          <div class="category-item" onclick="showPage('search')">
+            <div class="category-icon">···</div>
+            <span>전체보기</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="popular-section">
+      <div class="container">
+        <h2 class="section-title">인기 멘토를 만나보세요</h2>
+        <div id="popular-mentors" class="mentor-card-grid"></div>
+      </div>
+    </section>
+
+    <section class="bottom-banner">
+      <div class="banner-content">
+        <div class="banner-text">
+          <h2>현직자와 1:1 멘토링으로<br>커리어 성장하자!</h2>
+          <p>멘토링매치 체험해보기 ›</p>
+        </div>
+        <div class="banner-icon">🗣️</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 멘토 찾기 페이지 -->
+  <div id="page-search" class="page">
+    <div class="container">
+      <div class="page-header">
+        <button class="back-btn" onclick="showPage('home')">‹</button>
+        <h1>멘토 찾기</h1>
+      </div>
+
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="이름, 분야로 검색하세요." onkeyup="searchMentors()">
+        <button class="search-btn" onclick="searchMentors()">🔍</button>
+      </div>
+
+      <div class="search-meta">
+        <span id="search-count">총 0건</span>
+        <select id="sort-select" onchange="searchMentors()">
+          <option value="name">이름순</option>
+          <option value="field">분야순</option>
+        </select>
+      </div>
+
+      <div class="filter-chips">
+        <button class="chip" onclick="filterByField('웹개발')">웹개발</button>
+        <button class="chip" onclick="filterByField('백엔드')">백엔드</button>
+        <button class="chip" onclick="filterByField('데이터분석')">데이터분석</button>
+        <button class="chip" onclick="filterByField('클라우드')">클라우드</button>
+        <button class="chip" onclick="loadMentorList()">전체</button>
+      </div>
+
+      <div id="mentor-list" class="mentor-list"></div>
+    </div>
+  </div>
+
+  <!-- 멘토 프로필 페이지 (MENTOR 전용) -->
+  <div id="page-register" class="page">
+    <div class="container">
+      <div class="page-header">
+        <button class="back-btn" onclick="showPage('home')">‹</button>
+        <h1>멘토 프로필</h1>
+      </div>
+      <div id="mentor-profile-content"></div>
+    </div>
+  </div>
+
+  <!-- 대화 관리 / 대시보드 -->
+  <div id="page-chat" class="page">
+    <div class="container">
+      <div class="page-header">
+        <button class="back-btn" onclick="showPage('home')">‹</button>
+        <h1 id="chat-title">활동 내역</h1>
+      </div>
+      <div id="chat-tabs" class="chat-tabs"></div>
+      <div id="chat-content" class="chat-content"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ MODALS ══════════════════ -->
+
+  <!-- 로그인/회원가입 모달 -->
+  <div id="modal-auth" class="modal-overlay" style="display:none" onclick="handleOverlayClick(event,'modal-auth')">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="auth-modal-title">로그인</h3>
+        <button class="modal-close" onclick="closeAuthModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="auth-login-form">
+          <div class="form-group">
+            <label>이메일</label>
+            <input type="email" id="login-email" placeholder="이메일을 입력하세요">
+          </div>
+          <div class="form-group">
+            <label>비밀번호</label>
+            <input type="password" id="login-password" placeholder="비밀번호를 입력하세요" onkeydown="if(event.key==='Enter')submitAuth()">
+          </div>
+          <button class="btn-submit" onclick="submitAuth()">로그인</button>
+          <p class="auth-switch">계정이 없으신가요? <a href="#" onclick="switchAuthMode('register');return false">회원가입</a></p>
+        </div>
+        <div id="auth-register-form" style="display:none">
+          <div class="form-group">
+            <label>이름</label>
+            <input type="text" id="register-name" placeholder="이름을 입력하세요">
+          </div>
+          <div class="form-group">
+            <label>이메일</label>
+            <input type="email" id="register-email" placeholder="이메일을 입력하세요">
+          </div>
+          <div class="form-group">
+            <label>비밀번호 <small>(8자 이상)</small></label>
+            <input type="password" id="register-password" placeholder="비밀번호를 입력하세요">
+          </div>
+          <div class="form-group">
+            <label>역할</label>
+            <select id="register-role" class="form-select">
+              <option value="MENTEE">멘티 (상담 신청)</option>
+              <option value="MENTOR">멘토 (상담 제공)</option>
+            </select>
+          </div>
+          <!-- 멘토 전용 추가 필드 (역할이 MENTOR일 때만 노출) -->
+          <div id="mentor-extra-fields" style="display:none">
+            <div class="form-group">
+              <label>직무/전공 <small>(필수)</small></label>
+              <input type="text" id="register-major" placeholder="예: 프론트엔드 개발">
+            </div>
+            <div class="form-group">
+              <label>상담 가능 분야 <small>(쉼표 구분, 필수)</small></label>
+              <input type="text" id="register-fields" placeholder="예: 웹개발, 클라우드, React">
+            </div>
+            <div class="form-group">
+              <label>상담 가능 시간 1</label>
+              <div style="display:flex;gap:0.5rem">
+                <input type="datetime-local" id="register-avail-start-0" style="flex:1">
+                <span style="align-self:center">~</span>
+                <input type="datetime-local" id="register-avail-end-0" style="flex:1">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>소개글</label>
+              <textarea id="register-intro" rows="2" placeholder="멘티에게 보여줄 소개를 작성하세요"></textarea>
+            </div>
+          </div>
+          <button class="btn-submit" onclick="submitAuth()">회원가입</button>
+          <p class="auth-switch">이미 계정이 있으신가요? <a href="#" onclick="switchAuthMode('login');return false">로그인</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상담 신청 모달 -->
+  <div id="modal-apply" class="modal-overlay" style="display:none" onclick="handleOverlayClick(event,'modal-apply')">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>상담 신청</h3>
+        <button class="modal-close" onclick="closeApplyModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>관심 분야</label>
+          <input type="text" id="apply-field" placeholder="예: 웹개발, 클라우드">
+        </div>
+        <div class="form-group">
+          <label>상담 주제</label>
+          <input type="text" id="apply-topic" placeholder="상담받고 싶은 주제를 입력하세요">
+        </div>
+        <div class="form-group">
+          <label>희망 상담 일시</label>
+          <input type="datetime-local" id="apply-desired-at">
+        </div>
+        <div class="form-group">
+          <label>메시지 <small>(선택)</small></label>
+          <textarea id="apply-message" rows="3" placeholder="멘토에게 전할 메시지를 입력하세요"></textarea>
+        </div>
+        <button class="btn-submit" onclick="submitApply()">신청하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 승인 모달 (멘토) -->
+  <div id="modal-approve" class="modal-overlay" style="display:none" onclick="handleOverlayClick(event,'modal-approve')">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>상담 일정 확정</h3>
+        <button class="modal-close" onclick="closeApproveModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>상담 일시</label>
+          <input type="datetime-local" id="approve-scheduled-at">
+        </div>
+        <button class="btn-submit" onclick="submitApprove()">일정 확정하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 반려 모달 (멘토) -->
+  <div id="modal-reject" class="modal-overlay" style="display:none" onclick="handleOverlayClick(event,'modal-reject')">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>배정 반려</h3>
+        <button class="modal-close" onclick="closeRejectModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>반려 사유</label>
+          <textarea id="reject-reason" rows="3" placeholder="반려 사유를 입력하세요 (필수)"></textarea>
+        </div>
+        <button class="btn-submit btn-danger" onclick="submitReject()">반려하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상담 기록 모달 (멘토) -->
+  <div id="modal-record" class="modal-overlay" style="display:none" onclick="handleOverlayClick(event,'modal-record')">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>상담 기록 작성</h3>
+        <button class="modal-close" onclick="closeRecordModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>상담 요약 <small>(필수)</small></label>
+          <textarea id="record-summary" rows="4" placeholder="상담 내용을 요약해 주세요"></textarea>
+        </div>
+        <div class="form-group">
+          <label>후속 과제 <small>(선택)</small></label>
+          <textarea id="record-followup" rows="2" placeholder="멘티에게 남길 과제나 조언"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="record-next-consult">
+            <span>다음 상담이 필요합니다</span>
+          </label>
+        </div>
+        <button class="btn-submit" onclick="submitRecord()">기록 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 멘토 후보 모달 (어드민) -->
+  <div id="modal-candidates" class="modal-overlay" style="display:none" onclick="handleOverlayClick(event,'modal-candidates')">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h3>멘토 후보 목록</h3>
+        <button class="modal-close" onclick="closeCandidatesModal()">✕</button>
+      </div>
+      <div class="modal-body" id="candidates-list"></div>
+    </div>
+  </div>
+
+  <!-- 푸터 -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-links">
+        <a href="#" onclick="openAuthModal('login');return false">로그인</a>
+        <a href="#" onclick="openAuthModal('register');return false">회원가입</a>
+        <a href="#">고객센터</a>
+        <a href="#">사이트맵</a>
+      </div>
+      <div class="footer-info">
+        <p>멘토링매치 — 멘토링 매칭 및 상담 기록 시스템</p>
+        <p class="footer-note">본 서비스는 학습 목적으로 제작되었습니다.</p>
+      </div>
+    </div>
+  </footer>
+
+  <div id="toast-container"></div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
