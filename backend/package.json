@@ -1,0 +1,26 @@
+{
+  "name": "mentoring-matching-backend",
+  "version": "0.1.0",
+  "description": "KMU Cloud V1 - 멘토링 매칭 및 상담 기록 시스템 백엔드",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "migrate": "node scripts/migrate.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.658.0",
+    "@aws-sdk/s3-request-presigner": "^3.658.0",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.22.3",
+    "uuid": "^10.0.0",
+    "zod": "^3.23.8"
+  }
+}

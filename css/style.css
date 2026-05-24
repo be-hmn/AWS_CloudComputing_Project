@@ -608,3 +608,146 @@ a { text-decoration: none; color: inherit; }
 
 /* ─── 유틸 ─── */
 .empty { text-align: center; padding: 2rem; color: #aaa; font-size: 0.9rem; }
+
+/* ─── 헤더 인증 버튼 ─── */
+.btn-auth-outline {
+  padding: 0.4rem 1rem;
+  border: 1.5px solid #2b6cb0;
+  border-radius: 20px;
+  background: transparent;
+  color: #2b6cb0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-auth-outline:hover { background: #2b6cb0; color: white; }
+
+.btn-auth-ghost {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  background: transparent;
+  color: #888;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.btn-auth-ghost:hover { color: #333; }
+
+.user-badge {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2b6cb0;
+  margin-right: 0.5rem;
+}
+
+.header-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ─── 모달 ─── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  overflow: hidden;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-wide { max-width: 600px; }
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.modal-header h3 { font-size: 1rem; font-weight: 700; }
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #aaa;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+.modal-close:hover { color: #333; }
+
+.modal-body { padding: 1.5rem; }
+
+/* ─── 폼 셀렉트 ─── */
+.form-select {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.form-select:focus { outline: none; border-color: #2b6cb0; }
+
+/* ─── 체크박스 ─── */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.checkbox-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+
+/* ─── 인증 전환 링크 ─── */
+.auth-switch {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #888;
+}
+.auth-switch a { color: #2b6cb0; font-weight: 600; }
+
+/* ─── 위험 버튼 ─── */
+.btn-danger { background: #e53e3e !important; }
+.btn-danger:hover { background: #c53030 !important; }
+
+/* ─── 통계 테이블 ─── */
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.stats-table th, .stats-table td {
+  padding: 0.7rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #f0f0f0;
+}
+.stats-table th { font-weight: 700; color: #555; background: #f8f9fa; }
+.stats-table tr:last-child td { border-bottom: none; }
+
+/* ─── 기록 아이템 추가 스타일 ─── */
+.record-followup { font-size: 0.8rem; color: #666; margin-top: 0.4rem; }
+.record-next { font-size: 0.8rem; color: #2b6cb0; margin-top: 0.4rem; }
