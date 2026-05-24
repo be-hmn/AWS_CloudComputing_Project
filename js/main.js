@@ -8,10 +8,15 @@ let _allMentors = [];   // 공개 멘토 목록 캐시
 
 // 모달 상태
 let _pendingApplyField = '';
+let _pendingApplyMentorId = null;
 let _pendingApproveId = null;
 let _pendingRejectId = null;
 let _pendingRecordAppId = null;
 let _pendingAssignAppId = null;
+let _pendingChatAppId = null;
+let _pendingReviewAppId = null;
+let _pendingReviewRating = 0;
+let _chatPollingTimer = null;
 
 // ═══════════════════════════════════════════════
 //  JWT / Token
@@ -208,7 +213,10 @@ window.showPage = function (page) {
   });
   window.scrollTo(0, 0);
 
-  if (page === 'search') loadMentorList();
+  if (page === 'search') {
+    document.getElementById('search-input').value = '';
+    loadMentorList();
+  }
   if (page === 'chat') loadDashboard();
   if (page === 'register') loadMentorProfilePage();
 };
@@ -238,7 +246,7 @@ async function loadPopularMentors() {
       return;
     }
     container.innerHTML = top4.map(m => `
-      <div class="mentor-card" onclick="showPage('search')">
+      <div class="mentor-card" onclick="searchByMentorName('${esc(m.name)}')" style="cursor:pointer">
         <div class="mentor-card-header">
           <div class="mentor-avatar">👤</div>
           <div class="mentor-info">
@@ -309,9 +317,19 @@ window.loadMentorList = async function (filterField) {
 window.searchMentors = function () { loadMentorList(); };
 
 window.filterByField = function (field) {
-  showPage('search');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-search')?.classList.add('active');
+  window.scrollTo(0, 0);
   document.getElementById('search-input').value = field;
   loadMentorList(field);
+};
+
+window.searchByMentorName = function (name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-search')?.classList.add('active');
+  window.scrollTo(0, 0);
+  document.getElementById('search-input').value = name;
+  loadMentorList();
 };
 
 window.toggleFilter = function (el) { el.classList.toggle('active'); };
@@ -330,6 +348,7 @@ window.applyMentor = function (mentorId, defaultField) {
     return;
   }
   _pendingApplyField = defaultField || '';
+  _pendingApplyMentorId = mentorId;
   document.getElementById('apply-field').value = _pendingApplyField;
   document.getElementById('apply-topic').value = '';
   document.getElementById('apply-desired-at').value = '';
@@ -351,7 +370,24 @@ window.submitApply = async function () {
     showToast('분야, 주제, 희망 일시는 필수입니다.', 'error');
     return;
   }
+  if (!message) {
+    showToast('요청 사항을 입력하세요.', 'error');
+    return;
+  }
   const desired_at = new Date(desired_at_raw).toISOString();
+
+  // 3.1 멘토 가능 시간 검증
+  const mentor = _allMentors.find(m => m.id === _pendingApplyMentorId);
+  if (mentor?.availabilities?.length) {
+    const desiredTime = new Date(desired_at_raw).getTime();
+    const hasOverlap = mentor.availabilities.some(av => {
+      return desiredTime >= new Date(av.start_at).getTime() && desiredTime <= new Date(av.end_at).getTime();
+    });
+    if (!hasOverlap) {
+      showToast('멘토의 상담 가능 시간과 일치하지 않습니다.', 'error');
+      return;
+    }
+  }
   const btn = document.querySelector('#modal-apply .btn-submit');
   try {
     if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
@@ -385,7 +421,7 @@ async function loadMentorProfilePage() {
 
   const avail = existing?.availabilities ?? [];
   const availRows = [0, 1, 2].map(i => `
-    <div class="avail-row" style="display:flex;gap:0.5rem;margin-bottom:0.5rem">
+    <div class="avail-row">
       <input type="datetime-local" class="avail-start" style="flex:1" value="${avail[i]?.start_at ? avail[i].start_at.slice(0,16) : ''}">
       <span style="align-self:center">~</span>
       <input type="datetime-local" class="avail-end" style="flex:1" value="${avail[i]?.end_at ? avail[i].end_at.slice(0,16) : ''}">
@@ -474,6 +510,7 @@ function loadDashboard() {
     tabs = [
       { id: 'pending-assign', label: '대기 중 배정' },
       { id: 'all-assign', label: '전체 배정' },
+      { id: 'mentor-records', label: '상담 기록' },
     ];
     defaultTab = 'pending-assign';
   } else if (role === 'ADMIN') {
@@ -506,6 +543,7 @@ window.switchChatTab = function (tab, el) {
   } else if (role === 'MENTOR') {
     if (tab === 'pending-assign') loadMyAssignments('PENDING');
     else if (tab === 'all-assign') loadMyAssignments();
+    else if (tab === 'mentor-records') loadMentorRecords();
   } else if (role === 'ADMIN') {
     if (tab === 'admin-apps') loadAdminApplications();
     else if (tab === 'admin-mentors') loadAdminMentors();
@@ -530,7 +568,11 @@ async function loadSentApplications() {
         </div>
         <div class="chat-item-body">희망 일시: ${formatDate(a.desired_at)}${a.message ? `<br>메시지: ${esc(a.message)}` : ''}</div>
         <div class="chat-item-date">${formatDate(a.created_at)}</div>
-        ${a.status === 'SUBMITTED' ? `<div class="chat-item-actions"><button class="btn-sm cancel" onclick="cancelApp(${a.id})">신청 취소</button></div>` : ''}
+        <div class="chat-item-actions">
+          ${a.status === 'SUBMITTED' ? `<button class="btn-sm cancel" onclick="cancelApp(${a.id})">신청 취소</button>` : ''}
+          ${(a.status === 'SCHEDULED' || a.status === 'UNDER_REVIEW') ? `<button class="btn-sm" style="background:#9f7aea;color:white" onclick="openChatModal(${a.id})">채팅</button>` : ''}
+          ${a.status === 'COMPLETED' ? `<button class="btn-sm approve" onclick="openReviewModal(${a.id})">후기 작성</button><button class="btn-sm" style="background:#9f7aea;color:white" onclick="openChatModal(${a.id})">채팅</button>` : ''}
+        </div>
       </div>
     `).join('');
   } catch (e) { c.innerHTML = `<div class="empty">${e.message}</div>`; }
@@ -585,8 +627,11 @@ async function loadMyAssignments(statusFilter) {
               <button class="btn-sm approve" onclick="openApproveModal(${item.assignment_id})">승인</button>
               <button class="btn-sm reject" onclick="openRejectModal(${item.assignment_id})">반려</button>
             ` : ''}
-            ${app?.status === 'SCHEDULED' ? `
+            ${app?.status === 'SCHEDULED' && item.assignment_status === 'APPROVED' ? `
               <button class="btn-sm record" onclick="openRecordModal(${app.id})">상담 완료 & 기록 작성</button>
+            ` : ''}
+            ${item.assignment_status === 'APPROVED' ? `
+              <button class="btn-sm" style="background:#9f7aea;color:white" onclick="openChatModal(${app.id})">채팅</button>
             ` : ''}
           </div>
         </div>
@@ -700,6 +745,9 @@ async function loadAdminApplications(statusFilter) {
         <div class="chat-item-actions">
           ${(a.status === 'SUBMITTED' || a.status === 'UNDER_REVIEW') ? `
             <button class="btn-sm approve" onclick="openCandidatesModal(${a.id})">멘토 배정</button>
+          ` : ''}
+          ${(a.status !== 'CANCELLED' && a.status !== 'COMPLETED') ? `
+            <button class="btn-sm cancel" onclick="cancelAdminApp(${a.id})">취소</button>
           ` : ''}
         </div>
       </div>
@@ -831,6 +879,114 @@ async function loadAdminRecords() {
     `).join('');
   } catch (e) { c.innerHTML = `<div class="empty">${e.message}</div>`; }
 }
+
+// ─── ADMIN: 신청 취소 ───
+window.cancelAdminApp = async function (id) {
+  if (!confirm('이 신청을 취소하시겠습니까?')) return;
+  try {
+    await api('DELETE', `/api/admin/applications/${id}`);
+    showToast('신청이 취소되었습니다.', 'info');
+    loadAdminApplications();
+  } catch (e) { showToast(e.message, 'error'); }
+};
+
+// ─── MENTOR: 상담 기록 ───
+async function loadMentorRecords() {
+  const c = document.getElementById('chat-content');
+  c.innerHTML = '<div class="empty">불러오는 중...</div>';
+  try {
+    const records = await api('GET', '/api/mentors/me/records');
+    if (!records.length) { c.innerHTML = '<div class="empty">작성한 상담 기록이 없습니다.</div>'; return; }
+    c.innerHTML = records.map(r => `
+      <div class="record-item">
+        <div class="record-meta">신청 #${r.application_id} · ${formatDate(r.created_at)}</div>
+        <div class="record-summary">${esc(r.summary)}</div>
+        ${r.follow_up_task ? `<div class="record-followup"><strong>후속 과제:</strong> ${esc(r.follow_up_task)}</div>` : ''}
+        ${r.needs_next_consultation ? '<div class="record-next">🔄 다음 상담 필요</div>' : ''}
+      </div>
+    `).join('');
+  } catch (e) { c.innerHTML = `<div class="empty">${e.message}</div>`; }
+}
+
+// ─── 채팅 모달 ───
+window.openChatModal = async function (applicationId) {
+  _pendingChatAppId = applicationId;
+  document.getElementById('modal-chat').style.display = 'flex';
+  document.getElementById('chat-input').value = '';
+  await refreshChatMessages();
+  if (_chatPollingTimer) clearInterval(_chatPollingTimer);
+  _chatPollingTimer = setInterval(refreshChatMessages, 3000);
+};
+
+window.closeChatModal = function () {
+  document.getElementById('modal-chat').style.display = 'none';
+  if (_chatPollingTimer) { clearInterval(_chatPollingTimer); _chatPollingTimer = null; }
+};
+
+async function refreshChatMessages() {
+  if (!_pendingChatAppId) return;
+  try {
+    const msgs = await api('GET', `/api/applications/${_pendingChatAppId}/messages`);
+    const box = document.getElementById('chat-messages');
+    if (!box) return;
+    box.innerHTML = msgs.length
+      ? msgs.map(m => `
+          <div class="chat-bubble ${m.sender_id === currentUser?.id ? 'mine' : 'theirs'}">
+            <div class="bubble-name">${esc(m.sender_name)} <small>(${m.sender_role})</small></div>
+            <div class="bubble-text">${esc(m.content)}</div>
+            <div class="bubble-time">${formatDate(m.created_at)}</div>
+          </div>
+        `).join('')
+      : '<div class="empty">아직 메시지가 없습니다.</div>';
+    box.scrollTop = box.scrollHeight;
+  } catch { /* ignore */ }
+}
+
+window.sendChatMessage = async function () {
+  const input = document.getElementById('chat-input');
+  const content = input?.value.trim();
+  if (!content) return;
+  try {
+    await api('POST', `/api/applications/${_pendingChatAppId}/messages`, { content });
+    input.value = '';
+    await refreshChatMessages();
+  } catch (e) { showToast(e.message, 'error'); }
+};
+
+// ─── 후기 모달 ───
+window.openReviewModal = function (applicationId) {
+  _pendingReviewAppId = applicationId;
+  _pendingReviewRating = 0;
+  document.getElementById('review-content').value = '';
+  document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+  document.getElementById('modal-review').style.display = 'flex';
+};
+
+window.closeReviewModal = function () {
+  document.getElementById('modal-review').style.display = 'none';
+};
+
+window.setRating = function (val) {
+  _pendingReviewRating = val;
+  document.querySelectorAll('.star').forEach(s => {
+    s.classList.toggle('active', Number(s.dataset.v) <= val);
+  });
+};
+
+window.submitReview = async function () {
+  const content = document.getElementById('review-content').value.trim();
+  if (!_pendingReviewRating) { showToast('평점을 선택하세요.', 'error'); return; }
+  if (!content) { showToast('후기 내용을 입력하세요.', 'error'); return; }
+  const btn = document.querySelector('#modal-review .btn-submit');
+  try {
+    if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
+    await api('POST', `/api/applications/${_pendingReviewAppId}/review`, { rating: _pendingReviewRating, content });
+    closeReviewModal();
+    showToast('후기가 등록되었습니다!', 'success');
+    loadSentApplications();
+  } catch (e) { showToast(e.message, 'error'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = '후기 등록'; } }
+};
 
 // ─── ADMIN: 멘티 이력 ───
 async function loadAdminMenteeHistory() {
