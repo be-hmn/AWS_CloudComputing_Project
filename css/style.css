@@ -557,6 +557,12 @@ a { text-decoration: none; color: inherit; }
 
 .stars { color: #f6ad55; }
 
+/* ─── 멘토 가능 시간 ─── */
+.mentor-avail { margin: 0.5rem 0 0.8rem; font-size: 0.82rem; }
+.avail-label { font-weight: 600; color: #2b6cb0; display: block; margin-bottom: 0.3rem; }
+.avail-list { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.avail-list li { background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 12px; padding: 0.2rem 0.7rem; font-size: 0.78rem; color: #2c5282; }
+
 /* ─── 푸터 ─── */
 .footer {
   border-top: 1px solid #e8e8e8;
@@ -812,6 +818,6 @@ a { text-decoration: none; color: inherit; }
 
 /* ─── 별점 ─── */
 .star-rating { display: flex; gap: 0.3rem; font-size: 1.8rem; cursor: pointer; }
-.star { color: #ddd; transition: color 0.15s; }
+.star { color: #ddd; transition: color 0.15s; user-select: none; }
 .star.active { color: #f6ad55; }
-.star:hover { color: #f6ad55; }
+.star.hovered { color: #f6ad55; }

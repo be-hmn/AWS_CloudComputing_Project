@@ -306,6 +306,14 @@ window.loadMentorList = async function (filterField) {
           </div>
         </div>
         <div class="mentor-list-meta">${esc(m.intro || '')}</div>
+        ${(m.availabilities && m.availabilities.length) ? `
+          <div class="mentor-avail">
+            <span class="avail-label">🕐 상담 가능 시간</span>
+            <ul class="avail-list">
+              ${m.availabilities.map(a => `<li>${formatAvail(a.start_at, a.end_at)}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
         <button class="apply-btn" onclick="applyMentor(${m.id},'${esc(m.fields?.[0] || '')}')">상담 신청하기</button>
       </div>
     `).join('');
@@ -958,7 +966,9 @@ window.openReviewModal = function (applicationId) {
   _pendingReviewAppId = applicationId;
   _pendingReviewRating = 0;
   document.getElementById('review-content').value = '';
-  document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('#star-rating .star').forEach(s => {
+    s.classList.remove('active', 'hovered');
+  });
   document.getElementById('modal-review').style.display = 'flex';
 };
 
@@ -968,7 +978,7 @@ window.closeReviewModal = function () {
 
 window.setRating = function (val) {
   _pendingReviewRating = val;
-  document.querySelectorAll('.star').forEach(s => {
+  document.querySelectorAll('#star-rating .star').forEach(s => {
     s.classList.toggle('active', Number(s.dataset.v) <= val);
   });
 };
@@ -1024,6 +1034,23 @@ window.fetchMenteeHistory = async function () {
 // ═══════════════════════════════════════════════
 //  Utils
 // ═══════════════════════════════════════════════
+function initStarHover() {
+  const container = document.getElementById('star-rating');
+  if (!container) return;
+  const stars = container.querySelectorAll('.star');
+  stars.forEach((star, idx) => {
+    star.addEventListener('mouseenter', () => {
+      stars.forEach((s, i) => s.classList.toggle('hovered', i <= idx));
+    });
+    star.addEventListener('mouseleave', () => {
+      stars.forEach(s => s.classList.remove('hovered'));
+    });
+  });
+  container.addEventListener('mouseleave', () => {
+    stars.forEach(s => s.classList.remove('hovered'));
+  });
+}
+
 function showToast(message, type = 'info') {
   const container = document.getElementById('toast-container');
   const toast = document.createElement('div');
@@ -1049,6 +1076,22 @@ function assignStatusClass(s) {
   return { PENDING: 'review', APPROVED: 'confirmed', REJECTED: 'rejected', SUPERSEDED: 'cancelled' }[s] || '';
 }
 
+function formatAvail(start, end) {
+  if (!start || !end) return '-';
+  const s = new Date(start);
+  const e = new Date(end);
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  const pad = n => String(n).padStart(2, '0');
+  const sDay = days[s.getDay()];
+  const sTime = `${pad(s.getHours())}:${pad(s.getMinutes())}`;
+  const eTime = `${pad(e.getHours())}:${pad(e.getMinutes())}`;
+  if (s.toDateString() === e.toDateString()) {
+    return `${sDay}요일 ${sTime} ~ ${eTime}`;
+  }
+  const eDay = days[e.getDay()];
+  return `${sDay}요일 ${sTime} ~ ${eDay}요일 ${eTime}`;
+}
+
 function formatDate(iso) {
   if (!iso) return '-';
   return new Date(iso).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -1070,4 +1113,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     const extra = document.getElementById('mentor-extra-fields');
     if (extra) extra.style.display = e.target.value === 'MENTOR' ? 'block' : 'none';
   });
+  initStarHover();
 });
