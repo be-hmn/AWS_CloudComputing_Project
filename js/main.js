@@ -106,6 +106,7 @@ window.submitAuth = async function () {
       closeAuthModal();
       renderNav();
       showToast(`${currentUser.name}님, 환영합니다!`, 'success');
+      showPage('chat');
     } else {
       const name = document.getElementById('register-name').value.trim();
       const email = document.getElementById('register-email').value.trim();
@@ -113,8 +114,33 @@ window.submitAuth = async function () {
       const role = document.getElementById('register-role').value;
       if (!name || !email || !password) { showToast('모든 필드를 입력하세요.', 'error'); return; }
       await api('POST', '/api/auth/register', { name, email, password, role });
-      showToast('회원가입 완료! 로그인해주세요.', 'success');
-      switchAuthMode('login');
+
+      if (role === 'MENTOR') {
+        const loginResult = await api('POST', '/api/auth/login', { email, password });
+        setToken(loginResult.token);
+        currentUser = loginResult.user;
+
+        const major = document.getElementById('register-major')?.value.trim();
+        const fields = document.getElementById('register-fields')?.value.split(',').map(s => s.trim()).filter(Boolean);
+        const intro = document.getElementById('register-intro')?.value.trim();
+        const s0 = document.getElementById('register-avail-start-0')?.value;
+        const e0 = document.getElementById('register-avail-end-0')?.value;
+        const availabilities = (s0 && e0) ? [{ start_at: new Date(s0).toISOString(), end_at: new Date(e0).toISOString() }] : [];
+
+        if (major && fields?.length && availabilities.length) {
+          try {
+            await api('POST', '/api/mentors/me', { major, intro: intro || undefined, fields, availabilities });
+          } catch { /* 나중에 프로필 페이지에서 수정 가능 */ }
+        }
+
+        closeAuthModal();
+        renderNav();
+        showToast(`${currentUser.name}님, 멘토로 가입되었습니다!`, 'success');
+        showPage('register');
+      } else {
+        showToast('회원가입 완료! 로그인해주세요.', 'success');
+        switchAuthMode('login');
+      }
     }
   } catch (e) {
     showToast(e.message, 'error');
@@ -167,6 +193,12 @@ function roleEmoji(role) {
 //  Page Management
 // ═══════════════════════════════════════════════
 window.showPage = function (page) {
+  const protectedPages = ['chat', 'register'];
+  if (protectedPages.includes(page) && !currentUser) {
+    showToast('로그인이 필요합니다.', 'error');
+    openAuthModal('login');
+    return;
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById(`page-${page}`);
   if (el) el.classList.add('active');
@@ -320,12 +352,16 @@ window.submitApply = async function () {
     return;
   }
   const desired_at = new Date(desired_at_raw).toISOString();
+  const btn = document.querySelector('#modal-apply .btn-submit');
   try {
+    if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
     await api('POST', '/api/applications', { interest_field, topic, desired_at, message: message || undefined });
     closeApplyModal();
     showToast('상담 신청이 완료되었습니다!', 'success');
   } catch (e) {
     showToast(e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '신청하기'; }
   }
 };
 
@@ -447,6 +483,7 @@ function loadDashboard() {
       { id: 'admin-mentors', label: '멘토 관리' },
       { id: 'admin-stats', label: '통계' },
       { id: 'admin-records', label: '기록 전체' },
+      { id: 'admin-mentee-history', label: '멘티 이력' },
     ];
     defaultTab = 'admin-apps';
   }
@@ -474,6 +511,7 @@ window.switchChatTab = function (tab, el) {
     else if (tab === 'admin-mentors') loadAdminMentors();
     else if (tab === 'admin-stats') loadAdminStats();
     else if (tab === 'admin-records') loadAdminRecords();
+    else if (tab === 'admin-mentee-history') loadAdminMenteeHistory();
   }
 };
 
@@ -483,7 +521,7 @@ async function loadSentApplications() {
   c.innerHTML = '<div class="empty">불러오는 중...</div>';
   try {
     const apps = await api('GET', '/api/applications');
-    if (!apps.length) { c.innerHTML = '<div class="empty">보낸 신청이 없습니다.</div>'; return; }
+    if (!apps.length) { c.innerHTML = '<div class="empty">아직 신청한 멘토링이 없습니다.<br><button class="btn-submit" style="margin-top:1rem;width:auto;padding:0.5rem 1.5rem" onclick="showPage(\'search\')">멘토 찾으러 가기</button></div>'; return; }
     c.innerHTML = apps.map(a => `
       <div class="chat-item">
         <div class="chat-item-header">
@@ -548,7 +586,7 @@ async function loadMyAssignments(statusFilter) {
               <button class="btn-sm reject" onclick="openRejectModal(${item.assignment_id})">반려</button>
             ` : ''}
             ${app?.status === 'SCHEDULED' ? `
-              <button class="btn-sm record" onclick="openRecordModal(${app.id})">기록 작성</button>
+              <button class="btn-sm record" onclick="openRecordModal(${app.id})">상담 완료 & 기록 작성</button>
             ` : ''}
           </div>
         </div>
@@ -570,12 +608,15 @@ window.submitApprove = async function () {
   const raw = document.getElementById('approve-scheduled-at').value;
   if (!raw) { showToast('상담 일시를 입력하세요.', 'error'); return; }
   const scheduled_at = new Date(raw).toISOString();
+  const btn = document.querySelector('#modal-approve .btn-submit');
   try {
+    if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
     await api('POST', `/api/assignments/${_pendingApproveId}/approve`, { scheduled_at });
     closeApproveModal();
     showToast('상담 일정이 확정되었습니다!', 'success');
     loadMyAssignments('PENDING');
   } catch (e) { showToast(e.message, 'error'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = '일정 확정하기'; } }
 };
 
 // ─── MENTOR: 반려 모달 ───
@@ -590,12 +631,15 @@ window.closeRejectModal = function () {
 window.submitReject = async function () {
   const reject_reason = document.getElementById('reject-reason').value.trim();
   if (!reject_reason) { showToast('반려 사유를 입력하세요.', 'error'); return; }
+  const btn = document.querySelector('#modal-reject .btn-submit');
   try {
+    if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
     await api('POST', `/api/assignments/${_pendingRejectId}/reject`, { reject_reason });
     closeRejectModal();
     showToast('반려 처리되었습니다.', 'info');
     loadMyAssignments('PENDING');
   } catch (e) { showToast(e.message, 'error'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = '반려하기'; } }
 };
 
 // ─── MENTOR: 기록 모달 ───
@@ -614,7 +658,9 @@ window.submitRecord = async function () {
   const follow_up_task = document.getElementById('record-followup').value.trim();
   const needs_next_consultation = document.getElementById('record-next-consult').checked;
   if (!summary) { showToast('상담 요약은 필수입니다.', 'error'); return; }
+  const btn = document.querySelector('#modal-record .btn-submit');
   try {
+    if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
     await api('POST', `/api/applications/${_pendingRecordAppId}/record`, {
       summary,
       follow_up_task: follow_up_task || undefined,
@@ -624,6 +670,7 @@ window.submitRecord = async function () {
     showToast('기록이 저장되었습니다!', 'success');
     loadMyAssignments();
   } catch (e) { showToast(e.message, 'error'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = '기록 저장'; } }
 };
 
 // ─── ADMIN: 신청 관리 ───
@@ -696,12 +743,17 @@ window.closeCandidatesModal = function () {
 };
 
 window.assignMentor = async function (applicationId, mentorId) {
+  const btn = event?.target;
   try {
+    if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
     await api('POST', `/api/admin/applications/${applicationId}/assign`, { mentor_id: mentorId });
     closeCandidatesModal();
     showToast('멘토가 배정되었습니다!', 'success');
     loadAdminApplications();
-  } catch (e) { showToast(e.message, 'error'); }
+  } catch (e) {
+    showToast(e.message, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '배정하기'; }
+  }
 };
 
 // ─── ADMIN: 멘토 관리 ───
@@ -780,6 +832,39 @@ async function loadAdminRecords() {
   } catch (e) { c.innerHTML = `<div class="empty">${e.message}</div>`; }
 }
 
+// ─── ADMIN: 멘티 이력 ───
+async function loadAdminMenteeHistory() {
+  const c = document.getElementById('chat-content');
+  c.innerHTML = `
+    <div style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center">
+      <input type="number" id="mentee-id-input" placeholder="멘티 user_id 입력" style="padding:0.4rem 0.8rem;border:1px solid #ddd;border-radius:6px;width:200px">
+      <button class="btn-sm approve" onclick="fetchMenteeHistory()">조회</button>
+    </div>
+    <div id="mentee-history-list"><div class="empty">멘티 ID를 입력하고 조회하세요.</div></div>
+  `;
+}
+
+window.fetchMenteeHistory = async function () {
+  const menteeId = document.getElementById('mentee-id-input')?.value.trim();
+  const listEl = document.getElementById('mentee-history-list');
+  if (!menteeId) { showToast('멘티 ID를 입력하세요.', 'error'); return; }
+  listEl.innerHTML = '<div class="empty">불러오는 중...</div>';
+  try {
+    const apps = await api('GET', `/api/admin/mentees/${menteeId}/applications`);
+    if (!apps.length) { listEl.innerHTML = '<div class="empty">신청 이력이 없습니다.</div>'; return; }
+    listEl.innerHTML = apps.map(a => `
+      <div class="chat-item">
+        <div class="chat-item-header">
+          <h4>#${a.id} · ${esc(a.interest_field)} — ${esc(a.topic)}</h4>
+          <span class="chat-status ${statusClass(a.status)}">${statusLabel(a.status)}</span>
+        </div>
+        <div class="chat-item-body">희망: ${formatDate(a.desired_at)}</div>
+        <div class="chat-item-date">${formatDate(a.created_at)}</div>
+      </div>
+    `).join('');
+  } catch (e) { listEl.innerHTML = `<div class="empty">${e.message}</div>`; }
+};
+
 // ═══════════════════════════════════════════════
 //  Utils
 // ═══════════════════════════════════════════════
@@ -825,4 +910,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderNav();
   loadPopularMentors();
   loadMentorList();
+  document.getElementById('register-role')?.addEventListener('change', (e) => {
+    const extra = document.getElementById('mentor-extra-fields');
+    if (extra) extra.style.display = e.target.value === 'MENTOR' ? 'block' : 'none';
+  });
 });

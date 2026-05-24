@@ -513,12 +513,12 @@ a { text-decoration: none; color: inherit; }
   font-weight: 600;
 }
 
-.chat-status.pending { background: #fefcbf; color: #975a16; }
-.chat-status.review { background: #bee3f8; color: #2b6cb0; }
-.chat-status.confirmed { background: #c6f6d5; color: #276749; }
-.chat-status.completed { background: #e9d8fd; color: #553c9a; }
-.chat-status.rejected { background: #fed7d7; color: #9b2c2c; }
-.chat-status.cancelled { background: #e2e8f0; color: #4a5568; }
+.chat-status.pending    { background: #e2e8f0; color: #4a5568; }
+.chat-status.review     { background: #fefcbf; color: #744210; }
+.chat-status.confirmed  { background: #bee3f8; color: #2a4365; }
+.chat-status.completed  { background: #c6f6d5; color: #22543d; }
+.chat-status.rejected   { background: #fed7d7; color: #742a2a; }
+.chat-status.cancelled  { background: #f7fafc; color: #a0aec0; }
 
 .chat-item-body { font-size: 0.8rem; color: #666; line-height: 1.5; }
 .chat-item-date { font-size: 0.75rem; color: #aaa; margin-top: 0.5rem; }
