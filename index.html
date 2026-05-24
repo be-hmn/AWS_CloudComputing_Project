@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>멘토링매치 — 멘토링 매칭 시스템</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- 상단 네비게이션 -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">🎓 <span>멘토링매치</span></div>
+      <nav class="nav-menu">
+        <a href="#" class="nav-link active" onclick="showPage('home')">홈</a>
+        <a href="#" class="nav-link" onclick="showPage('search')">멘토 찾기</a>
+        <a href="#" class="nav-link" onclick="showPage('register')">멘토 등록</a>
+        <a href="#" class="nav-link" onclick="showPage('chat')">대화 관리</a>
+      </nav>
+      <div class="header-right">
+        <button class="hamburger" onclick="toggleMenu()">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 홈 페이지 -->
+  <div id="page-home" class="page active">
+    <!-- 히어로 배너 -->
+    <section class="hero-section">
+      <div class="hero-cards">
+        <div class="hero-card">
+          <div class="hero-icon">💬</div>
+          <p class="hero-text">1:1 커리어 상담받기</p>
+        </div>
+        <div class="hero-card-group">
+          <div class="hero-card-small">
+            <div class="hero-icon-sm">📄</div>
+            <p>자소서·포폴 상담받기</p>
+          </div>
+          <div class="hero-card-small">
+            <div class="hero-icon-sm">🤝</div>
+            <p>딱 맞는 멘토 소개받기</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 분야 카테고리 -->
+    <section class="category-section">
+      <div class="container">
+        <div class="category-grid">
+          <div class="category-item" onclick="filterByField('웹개발')">
+            <div class="category-icon">💻</div>
+            <span>웹개발</span>
+          </div>
+          <div class="category-item" onclick="filterByField('프론트엔드')">
+            <div class="category-icon">🎨</div>
+            <span>프론트엔드</span>
+          </div>
+          <div class="category-item" onclick="filterByField('백엔드')">
+            <div class="category-icon">⚙️</div>
+            <span>백엔드</span>
+          </div>
+          <div class="category-item" onclick="filterByField('데이터분석')">
+            <div class="category-icon">📊</div>
+            <span>데이터분석</span>
+          </div>
+          <div class="category-item" onclick="filterByField('클라우드')">
+            <div class="category-icon">☁️</div>
+            <span>클라우드</span>
+          </div>
+          <div class="category-item" onclick="showPage('search')">
+            <div class="category-icon">···</div>
+            <span>전체보기</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 인기 멘토 -->
+    <section class="popular-section">
+      <div class="container">
+        <h2 class="section-title">인기 멘토를 만나보세요</h2>
+        <div id="popular-mentors" class="mentor-card-grid"></div>
+      </div>
+    </section>
+
+    <!-- 하단 배너 -->
+    <section class="bottom-banner">
+      <div class="banner-content">
+        <div class="banner-text">
+          <h2>현직자와 1:1 멘토링으로<br>커리어 성장하자!</h2>
+          <p>멘토링매치 체험해보기 ›</p>
+        </div>
+        <div class="banner-icon">🗣️</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 멘토 찾기 페이지 -->
+  <div id="page-search" class="page">
+    <div class="container">
+      <div class="page-header">
+        <button class="back-btn" onclick="showPage('home')">‹</button>
+        <h1>멘토 찾기</h1>
+      </div>
+
+      <!-- 검색바 -->
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="검색어를 입력하세요." onkeyup="searchMentors()">
+        <button class="search-btn" onclick="searchMentors()">🔍</button>
+      </div>
+
+      <div class="search-meta">
+        <span id="search-count">총 0건</span>
+        <select id="sort-select" onchange="searchMentors()">
+          <option value="popular">인기순</option>
+          <option value="rating">평점순</option>
+          <option value="counsel">상담건수순</option>
+        </select>
+      </div>
+
+      <!-- 필터 -->
+      <div class="filter-chips">
+        <button class="chip" onclick="toggleFilter(this, 'field')">분야 ▾</button>
+        <button class="chip" onclick="toggleFilter(this, 'time')">시간 ▾</button>
+        <button class="chip" onclick="toggleFilter(this, 'career')">경력 ▾</button>
+      </div>
+
+      <!-- 멘토 리스트 -->
+      <div id="mentor-list" class="mentor-list"></div>
+    </div>
+  </div>
+
+  <!-- 멘토 등록 페이지 -->
+  <div id="page-register" class="page">
+    <div class="container">
+      <div class="page-header">
+        <button class="back-btn" onclick="showPage('home')">‹</button>
+        <h1>멘토 등록</h1>
+      </div>
+
+      <form id="register-form" class="register-form" onsubmit="registerMentor(event)">
+        <div class="form-group">
+          <label>이름</label>
+          <input type="text" id="reg-name" placeholder="이름을 입력하세요" required>
+        </div>
+        <div class="form-group">
+          <label>소속/직장</label>
+          <input type="text" id="reg-company" placeholder="현재 소속을 입력하세요" required>
+        </div>
+        <div class="form-group">
+          <label>직무</label>
+          <input type="text" id="reg-major" placeholder="예: 프론트엔드 개발" required>
+        </div>
+        <div class="form-group">
+          <label>경력</label>
+          <input type="text" id="reg-career" placeholder="예: 5년차" required>
+        </div>
+        <div class="form-group">
+          <label>상담 가능 분야 (쉼표 구분)</label>
+          <input type="text" id="reg-fields" placeholder="예: 웹개발, 프론트엔드, React" required>
+        </div>
+        <div class="form-group">
+          <label>상담 가능 시간 (쉼표 구분)</label>
+          <input type="text" id="reg-times" placeholder="예: 월 19:00, 수 19:00" required>
+        </div>
+        <div class="form-group">
+          <label>대화 주제</label>
+          <input type="text" id="reg-topic" placeholder="예: 멘토링/코칭, 이직준비" required>
+        </div>
+        <div class="form-group">
+          <label>소개글</label>
+          <textarea id="reg-bio" rows="4" placeholder="멘티에게 보여줄 소개글을 작성하세요" required></textarea>
+        </div>
+        <button type="submit" class="btn-submit">멘토 등록하기</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 대화 관리 페이지 -->
+  <div id="page-chat" class="page">
+    <div class="container">
+      <div class="page-header">
+        <button class="back-btn" onclick="showPage('home')">‹</button>
+        <h1>대화 관리</h1>
+      </div>
+
+      <div class="chat-tabs">
+        <button class="chat-tab active" onclick="switchChatTab('received')">받은 요청</button>
+        <button class="chat-tab" onclick="switchChatTab('sent')">보낸 요청</button>
+        <button class="chat-tab" onclick="switchChatTab('records')">상담 기록</button>
+      </div>
+
+      <div id="chat-content" class="chat-content"></div>
+    </div>
+  </div>
+
+  <!-- 푸터 -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-links">
+        <a href="#">로그인</a>
+        <a href="#">회원가입</a>
+        <a href="#">고객센터</a>
+        <a href="#">사이트맵</a>
+      </div>
+      <div class="footer-info">
+        <p>멘토링매치 — 멘토링 매칭 및 상담 기록 시스템</p>
+        <p class="footer-note">본 서비스는 학습 목적으로 제작되었습니다.</p>
+      </div>
+    </div>
+  </footer>
+
+  <div id="toast-container"></div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
