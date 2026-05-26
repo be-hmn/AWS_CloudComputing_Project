@@ -28,21 +28,7 @@ export const assignBody = z.object({
   mentor_id: z.coerce.number().int().positive(),
 });
 
-export const approveBody = z
-  .object({
-    scheduled_at: z.string().refine((s) => !Number.isNaN(Date.parse(s)), {
-      message: 'invalid ISO date',
-    }),
-  })
-  .superRefine((val, ctx) => {
-    if (Date.parse(val.scheduled_at) <= Date.now()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['scheduled_at'],
-        message: 'scheduled_at must be in the future',
-      });
-    }
-  });
+export const approveBody = z.object({});
 
 export const rejectBody = z.object({
   reject_reason: z.string().min(1).max(500),

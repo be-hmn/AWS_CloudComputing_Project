@@ -557,6 +557,12 @@ a { text-decoration: none; color: inherit; }
 
 .stars { color: #f6ad55; }
 
+/* ─── 멘토 가능 시간 ─── */
+.mentor-avail { margin: 0.5rem 0 0.8rem; font-size: 0.82rem; }
+.avail-label { font-weight: 600; color: #2b6cb0; display: block; margin-bottom: 0.3rem; }
+.avail-list { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.avail-list li { background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 12px; padding: 0.2rem 0.7rem; font-size: 0.78rem; color: #2c5282; }
+
 /* ─── 푸터 ─── */
 .footer {
   border-top: 1px solid #e8e8e8;
@@ -751,3 +757,78 @@ a { text-decoration: none; color: inherit; }
 /* ─── 기록 아이템 추가 스타일 ─── */
 .record-followup { font-size: 0.8rem; color: #666; margin-top: 0.4rem; }
 .record-next { font-size: 0.8rem; color: #2b6cb0; margin-top: 0.4rem; }
+
+/* ─── 홈 배너 ─── */
+.home-banner {
+  background: linear-gradient(135deg, #2b6cb0 0%, #4299e1 100%);
+  padding: 3rem 1rem;
+  text-align: center;
+}
+.home-banner-title { color: white; font-size: 1.6rem; font-weight: 700; line-height: 1.4; margin-bottom: 0.8rem; }
+.home-banner-sub { color: rgba(255,255,255,0.85); font-size: 0.95rem; margin-bottom: 1.5rem; }
+.home-cta { width: auto; display: inline-block; padding: 0.8rem 2rem; font-size: 1rem; }
+
+/* ─── 1.3 가능 시간 입력 너비 수정 ─── */
+.avail-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  flex-wrap: nowrap;
+}
+.avail-row input[type="datetime-local"] {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.4rem;
+  font-size: 0.8rem;
+}
+.avail-row span { flex-shrink: 0; font-size: 0.85rem; color: #666; }
+
+/* ─── 채팅 버블 ─── */
+.chat-bubble {
+  display: flex;
+  flex-direction: column;
+  max-width: 75%;
+  margin-bottom: 0.8rem;
+}
+.chat-bubble.mine {
+  align-self: flex-end;
+  align-items: flex-end;
+  margin-left: auto;
+}
+.chat-bubble.theirs {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+#chat-messages {
+  display: flex;
+  flex-direction: column;
+}
+.bubble-name { font-size: 0.7rem; color: #888; margin-bottom: 0.2rem; }
+.bubble-text {
+  padding: 0.6rem 0.9rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  word-break: break-word;
+}
+.chat-bubble.mine .bubble-text { background: #2b6cb0; color: white; border-bottom-right-radius: 3px; }
+.chat-bubble.theirs .bubble-text { background: #f0f4ff; color: #333; border-bottom-left-radius: 3px; }
+.bubble-time { font-size: 0.65rem; color: #aaa; margin-top: 0.2rem; }
+
+/* ─── 별점 ─── */
+.star-rating { display: flex; gap: 0.3rem; font-size: 1.8rem; cursor: pointer; }
+.star { color: #ddd; transition: color 0.15s; user-select: none; }
+.star.active { color: #f6ad55; }
+.star.hovered { color: #f6ad55; }
+
+/* ─── 반려 안내 ─── */
+.reject-notice {
+  margin-top: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  background: #fff5f5;
+  border-left: 3px solid #fc8181;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  color: #742a2a;
+}

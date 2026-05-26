@@ -29,6 +29,14 @@ export const recordController = {
     }
   },
 
+  async listMentorRecords(req, res, next) {
+    try {
+      res.json(await recordService.listMyRecordsAsMentor(req.user.id));
+    } catch (e) {
+      next(e);
+    }
+  },
+
   async listAll(req, res, next) {
     try {
       res.json(await recordService.listAllForAdmin());

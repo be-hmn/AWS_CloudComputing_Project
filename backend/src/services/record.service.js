@@ -89,6 +89,19 @@ export const recordService = {
     return out;
   },
 
+  async listMyRecordsAsMentor(mentorUserId) {
+    const profile = mentorRepo.getByUserId(mentorUserId);
+    if (!profile) return [];
+    const myAssignments = assignmentRepo.listByMentor(profile.id)
+      .filter(a => a.status === 'APPROVED');
+    const out = [];
+    for (const a of myAssignments) {
+      const r = recordRepo.findByApplication(a.application_id);
+      if (r) out.push({ application_id: a.application_id, ...(await attachUrl(r)) });
+    }
+    return out;
+  },
+
   async listAllForAdmin() {
     const all = recordRepo.listAll();
     const out = [];

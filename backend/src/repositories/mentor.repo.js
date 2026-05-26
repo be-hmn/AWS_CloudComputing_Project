@@ -102,7 +102,7 @@ export const mentorRepo = {
    */
   listActiveCandidatesByField(field) {
     const matchingMentorIds = new Set(
-      store.mentor_fields.filter((f) => f.field === field).map((f) => f.mentor_id),
+      store.mentor_fields.filter((f) => f.field.toLowerCase().includes(field.toLowerCase())).map((f) => f.mentor_id),
     );
     return Array.from(store.mentor_profiles.values())
       .filter((p) => p.is_active && matchingMentorIds.has(p.id))

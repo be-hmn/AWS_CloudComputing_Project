@@ -3,6 +3,7 @@ import { applicationService } from '../services/application.service.js';
 import { candidateService } from '../services/candidate.service.js';
 import { assignmentService } from '../services/assignment.service.js';
 import { statsService } from '../services/stats.service.js';
+import { userRepo } from '../repositories/user.repo.js';
 
 export const adminController = {
   listMentors(req, res, next) {
@@ -61,6 +62,26 @@ export const adminController = {
   mentorStats(req, res, next) {
     try {
       res.json(statsService.mentorStats());
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  listMentees(req, res, next) {
+    try {
+      const mentees = userRepo.list()
+        .filter(u => u.role === 'MENTEE')
+        .map(u => ({ id: u.id, name: u.name, email: u.email, created_at: u.created_at }));
+      res.json(mentees);
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  cancelApplication(req, res, next) {
+    try {
+      const id = Number(req.params.id);
+      res.json(applicationService.cancelByAdmin(id));
     } catch (e) {
       next(e);
     }
