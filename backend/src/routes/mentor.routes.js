@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { mentorController } from '../controllers/mentor.controller.js';
+import { recordController } from '../controllers/record.controller.js';
 import { authRequired } from '../middlewares/auth.js';
 import { requireRole } from '../middlewares/requireRole.js';
 import { validate } from '../middlewares/validate.js';
@@ -24,5 +25,6 @@ router.patch(
   mentorController.patchMyProfile,
 );
 router.get('/me/assignments', mentorController.listMyAssignments);
+router.get('/me/records', recordController.listMentorRecords);
 
 export default router;

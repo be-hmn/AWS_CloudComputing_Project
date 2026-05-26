@@ -270,11 +270,14 @@ async function loadPopularMentors() {
 // ═══════════════════════════════════════════════
 window.loadMentorList = async function (filterField) {
   const container = document.getElementById('mentor-list');
+  if (!filterField) {
+    const input = document.getElementById('search-input');
+    if (input) input.value = '';
+  }
   container.innerHTML = '<div class="empty">불러오는 중...</div>';
   try {
-    const params = filterField ? `?field=${encodeURIComponent(filterField)}` : '';
-    const mentors = await api('GET', `/api/mentors${params}`);
-    _allMentors = filterField ? _allMentors : mentors;
+    const mentors = await api('GET', '/api/mentors');
+    _allMentors = mentors;
 
     const query = document.getElementById('search-input')?.value?.toLowerCase() || '';
     let filtered = mentors;
@@ -282,7 +285,8 @@ window.loadMentorList = async function (filterField) {
       filtered = mentors.filter(m =>
         (m.name || '').toLowerCase().includes(query) ||
         (m.fields || []).some(f => f.toLowerCase().includes(query)) ||
-        (m.major || '').toLowerCase().includes(query)
+        (m.major || '').toLowerCase().includes(query) ||
+        (m.intro || '').toLowerCase().includes(query)
       );
     }
 
@@ -329,7 +333,7 @@ window.filterByField = function (field) {
   document.getElementById('page-search')?.classList.add('active');
   window.scrollTo(0, 0);
   document.getElementById('search-input').value = field;
-  loadMentorList(field);
+  loadMentorList(field);  // field 전달 → input 초기화 방지, API는 전체 조회
 };
 
 window.searchByMentorName = function (name) {
@@ -356,7 +360,7 @@ window.applyMentor = function (mentorId, defaultField) {
     return;
   }
   _pendingApplyField = defaultField || '';
-  _pendingApplyMentorId = mentorId;
+  _pendingApplyMentorId = null;
   document.getElementById('apply-field').value = _pendingApplyField;
   document.getElementById('apply-topic').value = '';
   document.getElementById('apply-desired-at').value = '';
@@ -384,18 +388,6 @@ window.submitApply = async function () {
   }
   const desired_at = new Date(desired_at_raw).toISOString();
 
-  // 3.1 멘토 가능 시간 검증
-  const mentor = _allMentors.find(m => m.id === _pendingApplyMentorId);
-  if (mentor?.availabilities?.length) {
-    const desiredTime = new Date(desired_at_raw).getTime();
-    const hasOverlap = mentor.availabilities.some(av => {
-      return desiredTime >= new Date(av.start_at).getTime() && desiredTime <= new Date(av.end_at).getTime();
-    });
-    if (!hasOverlap) {
-      showToast('멘토의 상담 가능 시간과 일치하지 않습니다.', 'error');
-      return;
-    }
-  }
   const btn = document.querySelector('#modal-apply .btn-submit');
   try {
     if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
@@ -526,6 +518,7 @@ function loadDashboard() {
     tabs = [
       { id: 'admin-apps', label: '신청 관리' },
       { id: 'admin-mentors', label: '멘토 관리' },
+      { id: 'admin-mentees', label: '멘티 목록' },
       { id: 'admin-stats', label: '통계' },
       { id: 'admin-records', label: '기록 전체' },
       { id: 'admin-mentee-history', label: '멘티 이력' },
@@ -555,6 +548,7 @@ window.switchChatTab = function (tab, el) {
   } else if (role === 'ADMIN') {
     if (tab === 'admin-apps') loadAdminApplications();
     else if (tab === 'admin-mentors') loadAdminMentors();
+    else if (tab === 'admin-mentees') loadAdminMentees();
     else if (tab === 'admin-stats') loadAdminStats();
     else if (tab === 'admin-records') loadAdminRecords();
     else if (tab === 'admin-mentee-history') loadAdminMenteeHistory();
@@ -648,28 +642,20 @@ async function loadMyAssignments(statusFilter) {
   } catch (e) { c.innerHTML = `<div class="empty">${e.message}</div>`; }
 }
 
-// ─── MENTOR: 승인 모달 ───
-window.openApproveModal = function (assignmentId) {
-  _pendingApproveId = assignmentId;
-  document.getElementById('approve-scheduled-at').value = '';
-  document.getElementById('modal-approve').style.display = 'flex';
-};
-window.closeApproveModal = function () {
-  document.getElementById('modal-approve').style.display = 'none';
-};
-window.submitApprove = async function () {
-  const raw = document.getElementById('approve-scheduled-at').value;
-  if (!raw) { showToast('상담 일시를 입력하세요.', 'error'); return; }
-  const scheduled_at = new Date(raw).toISOString();
-  const btn = document.querySelector('#modal-approve .btn-submit');
+// ─── MENTOR: 승인 ───
+window.openApproveModal = async function (assignmentId) {
+  if (!confirm('멘티의 희망 일시로 상담 일정을 확정하시겠습니까?')) return;
+  const btn = event?.target;
   try {
     if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
-    await api('POST', `/api/assignments/${_pendingApproveId}/approve`, { scheduled_at });
-    closeApproveModal();
+    await api('POST', `/api/assignments/${assignmentId}/approve`, {});
     showToast('상담 일정이 확정되었습니다!', 'success');
     loadMyAssignments('PENDING');
-  } catch (e) { showToast(e.message, 'error'); }
-  finally { if (btn) { btn.disabled = false; btn.textContent = '일정 확정하기'; } }
+  } catch (e) {
+    showToast(e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '승인'; }
+  }
 };
 
 // ─── MENTOR: 반려 모달 ───
@@ -727,7 +713,7 @@ window.submitRecord = async function () {
 };
 
 // ─── ADMIN: 신청 관리 ───
-async function loadAdminApplications(statusFilter) {
+window.loadAdminApplications = async function (statusFilter) {
   const c = document.getElementById('chat-content');
   c.innerHTML = `
     <div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap">
@@ -749,7 +735,16 @@ async function loadAdminApplications(statusFilter) {
           <h4>#${a.id} · ${esc(a.interest_field)} — ${esc(a.topic)}</h4>
           <span class="chat-status ${statusClass(a.status)}">${statusLabel(a.status)}</span>
         </div>
-        <div class="chat-item-body">희망: ${formatDate(a.desired_at)} · 멘티 ID: ${a.mentee_id}</div>
+        <div class="chat-item-body">
+          희망: ${formatDate(a.desired_at)} · 멘티 ID: ${a.mentee_id}
+          ${a.reject_info ? `
+            <div class="reject-notice">
+              ⚠️ <strong>${esc(a.reject_info.mentor_name)}</strong> 멘토가 반려함
+              · 사유: ${esc(a.reject_info.reject_reason)}
+              <small>(${formatDate(a.reject_info.rejected_at)})</small>
+            </div>
+          ` : ''}
+        </div>
         <div class="chat-item-actions">
           ${(a.status === 'SUBMITTED' || a.status === 'UNDER_REVIEW') ? `
             <button class="btn-sm approve" onclick="openCandidatesModal(${a.id})">멘토 배정</button>
@@ -764,7 +759,7 @@ async function loadAdminApplications(statusFilter) {
     const listEl = document.getElementById('admin-apps-list');
     if (listEl) listEl.innerHTML = `<div class="empty">${e.message}</div>`;
   }
-}
+};
 
 // ─── ADMIN: 후보 모달 ───
 window.openCandidatesModal = async function (applicationId) {
@@ -888,11 +883,50 @@ async function loadAdminRecords() {
   } catch (e) { c.innerHTML = `<div class="empty">${e.message}</div>`; }
 }
 
+// ─── ADMIN: 멘티 목록 ───
+async function loadAdminMentees() {
+  const c = document.getElementById('chat-content');
+  c.innerHTML = '<div class="empty">불러오는 중...</div>';
+  try {
+    const mentees = await api('GET', '/api/admin/mentees');
+    if (!mentees.length) { c.innerHTML = '<div class="empty">등록된 멘티가 없습니다.</div>'; return; }
+    c.innerHTML = `
+      <table class="stats-table">
+        <thead><tr><th>ID</th><th>이름</th><th>이메일</th><th>가입일</th><th>이력 조회</th></tr></thead>
+        <tbody>
+          ${mentees.map(m => `
+            <tr>
+              <td>${m.id}</td>
+              <td>${esc(m.name)}</td>
+              <td>${esc(m.email)}</td>
+              <td>${formatDate(m.created_at)}</td>
+              <td><button class="btn-sm approve" onclick="viewMenteeHistory(${m.id})">이력 보기</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) { c.innerHTML = `<div class="empty">${e.message}</div>`; }
+}
+
+window.viewMenteeHistory = function (menteeId) {
+  const tabs = document.querySelectorAll('.chat-tab');
+  tabs.forEach(t => {
+    if (t.textContent.includes('멘티 이력')) {
+      t.click();
+      setTimeout(() => {
+        const input = document.getElementById('mentee-id-input');
+        if (input) { input.value = menteeId; fetchMenteeHistory(); }
+      }, 100);
+    }
+  });
+};
+
 // ─── ADMIN: 신청 취소 ───
 window.cancelAdminApp = async function (id) {
   if (!confirm('이 신청을 취소하시겠습니까?')) return;
   try {
-    await api('DELETE', `/api/admin/applications/${id}`);
+    await api('PATCH', `/api/admin/applications/${id}/cancel`);
     showToast('신청이 취소되었습니다.', 'info');
     loadAdminApplications();
   } catch (e) { showToast(e.message, 'error'); }

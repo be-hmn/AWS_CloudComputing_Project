@@ -46,7 +46,7 @@ export const assignmentService = {
     return assignment;
   },
 
-  approveAsMentor(mentorUserId, assignmentId, { scheduled_at }) {
+  approveAsMentor(mentorUserId, assignmentId) {
     const assignment = assignmentRepo.findById(assignmentId);
     if (!assignment) throw AppError.notFound('배정을 찾을 수 없습니다.');
 
@@ -68,7 +68,7 @@ export const assignmentService = {
       schedule = scheduleRepo.insert({
         application_id: app.id,
         mentor_id: profile.id,
-        scheduled_at,
+        scheduled_at: app.desired_at,
       });
     } catch (e) {
       if (e.code === 'SCHEDULE_CONFLICT') throw AppError.scheduleConflict();

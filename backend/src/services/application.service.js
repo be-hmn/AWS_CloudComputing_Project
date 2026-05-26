@@ -65,7 +65,38 @@ export const applicationService = {
   },
 
   listForAdmin({ status }) {
-    return applicationRepo.list({ status }).map(shape);
+    const apps = applicationRepo.list({ status });
+    return apps.map(app => {
+      const assignments = assignmentRepo.listByApplication(app.id);
+      const lastRejected = assignments
+        .filter(a => a.status === 'REJECTED')
+        .sort((a, b) => (b.closed_at || '').localeCompare(a.closed_at || ''))[0] ?? null;
+
+      let reject_info = null;
+      if (lastRejected) {
+        const mentor = mentorRepo.getById(lastRejected.mentor_id);
+        const user = mentor ? userRepo.findById(mentor.user_id) : null;
+        reject_info = {
+          mentor_name: user?.name ?? '(알 수 없음)',
+          reject_reason: lastRejected.reject_reason,
+          rejected_at: lastRejected.closed_at,
+        };
+      }
+      return { ...shape(app), reject_info };
+    });
+  },
+
+  cancelByAdmin(id) {
+    const app = applicationRepo.findById(id);
+    if (!app) throw AppError.notFound('신청을 찾을 수 없습니다.');
+    if (app.status === APPLICATION_STATUS.CANCELLED) {
+      throw AppError.conflict('ALREADY_CANCELLED', '이미 취소된 신청입니다.');
+    }
+    if (app.status === APPLICATION_STATUS.COMPLETED) {
+      throw AppError.conflict('ALREADY_COMPLETED', '상담이 완료된 신청은 취소할 수 없습니다.');
+    }
+    applicationRepo.updateStatus(app.id, APPLICATION_STATUS.CANCELLED);
+    return shape(applicationRepo.findById(app.id));
   },
 
   listByMenteeForAdmin(menteeId) {

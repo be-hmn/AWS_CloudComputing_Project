@@ -821,3 +821,14 @@ a { text-decoration: none; color: inherit; }
 .star { color: #ddd; transition: color 0.15s; user-select: none; }
 .star.active { color: #f6ad55; }
 .star.hovered { color: #f6ad55; }
+
+/* ─── 반려 안내 ─── */
+.reject-notice {
+  margin-top: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  background: #fff5f5;
+  border-left: 3px solid #fc8181;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  color: #742a2a;
+}

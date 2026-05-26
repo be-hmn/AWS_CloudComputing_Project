@@ -4,7 +4,7 @@ export const assignmentController = {
   approve(req, res, next) {
     try {
       const id = Number(req.params.id);
-      const result = assignmentService.approveAsMentor(req.user.id, id, req.body);
+      const result = assignmentService.approveAsMentor(req.user.id, id);
       res.json(result);
     } catch (e) {
       next(e);

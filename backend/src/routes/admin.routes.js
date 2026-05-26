@@ -35,6 +35,10 @@ router.post(
   validate({ body: assignBody }),
   adminController.assignMentor,
 );
+router.patch('/applications/:id/cancel', adminController.cancelApplication);
+
+// 멘티 목록
+router.get('/mentees', adminController.listMentees);
 
 // 멘티 신청 이력
 router.get('/mentees/:id/applications', adminController.listMenteeApplications);
