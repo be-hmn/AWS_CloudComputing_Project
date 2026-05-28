@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════
 //  Config & State
 // ═══════════════════════════════════════════════
-const API_BASE = import.meta.env.VITE_API_BASE ?? '';
+const API_BASE = 'http://3.239.225.197:3000';
 
 let currentUser = null; // { id, role, name }
 let _allMentors = [];   // 공개 멘토 목록 캐시

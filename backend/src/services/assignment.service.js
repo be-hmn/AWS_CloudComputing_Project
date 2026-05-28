@@ -31,6 +31,11 @@ export const assignmentService = {
       throw AppError.statusTransitionNotAllowed(app.status, APPLICATION_STATUS.UNDER_REVIEW);
     }
 
+    // 해당 멘토에게 동일 시간대(±1시간) 확정 일정이 있으면 배정 자체를 차단한다.
+    if (scheduleRepo.hasConflict(mentor.id, app.desired_at)) {
+      throw AppError.scheduleConflict();
+    }
+
     const actives = assignmentRepo.findActiveByApplication(app.id);
     if (actives.length > 0) assignmentRepo.markSuperseded(actives.map((a) => a.id));
 
