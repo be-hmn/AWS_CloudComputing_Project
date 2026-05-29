@@ -5,7 +5,7 @@ export const APPLICATION_STATUS = Object.freeze({
   UNDER_REVIEW: 'UNDER_REVIEW', // 멘토검토중
   SCHEDULED: 'SCHEDULED', // 일정확정
   COMPLETED: 'COMPLETED', // 상담완료
-  REJECTED: 'REJECTED', // 반려 (V1에서는 application 단위로 직접 사용하지 않음)
+  REJECTED: 'REJECTED', // 반려 — 멘토가 배정을 반려한 직후 상태(운영자 재배정 대기)
   CANCELLED: 'CANCELLED', // 취소
 });
 
@@ -13,14 +13,15 @@ export const APPLICATION_STATUSES = Object.values(APPLICATION_STATUS);
 
 /**
  * 허용되는 상태 전이 그래프.
- * 본 V1에서 application.status = REJECTED 는 enum 보존만 하고 활성 전이로 사용하지 않는다.
+ * 멘토가 반려하면 application.status = REJECTED 로 두고,
+ * 운영자가 다시 배정하면 REJECTED -> UNDER_REVIEW, 또는 직접 취소하면 REJECTED -> CANCELLED.
  */
 export const ALLOWED_TRANSITIONS = Object.freeze({
   SUBMITTED: new Set(['UNDER_REVIEW', 'CANCELLED']),
-  UNDER_REVIEW: new Set(['UNDER_REVIEW', 'SUBMITTED', 'SCHEDULED']),
-  SCHEDULED: new Set(['COMPLETED']),
+  UNDER_REVIEW: new Set(['UNDER_REVIEW', 'REJECTED', 'SCHEDULED', 'CANCELLED']),
+  SCHEDULED: new Set(['COMPLETED', 'CANCELLED']),
   COMPLETED: new Set(),
-  REJECTED: new Set(),
+  REJECTED: new Set(['UNDER_REVIEW', 'CANCELLED']),
   CANCELLED: new Set(),
 });
 

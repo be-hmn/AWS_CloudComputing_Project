@@ -74,4 +74,19 @@ export const scheduleRepo = {
     }
     return false;
   },
+
+  /**
+   * 특정 application 의 스케줄을 모두 제거. 운영자 취소 시 후처리에 사용.
+   */
+  removeByApplication(applicationId) {
+    const aid = Number(applicationId);
+    let removed = 0;
+    for (const [id, row] of store.consultation_schedules) {
+      if (row.application_id === aid) {
+        store.consultation_schedules.delete(id);
+        removed += 1;
+      }
+    }
+    return removed;
+  },
 };

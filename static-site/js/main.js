@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════
 //  Config & State
 // ═══════════════════════════════════════════════
-const API_BASE = 'http://3.239.225.197:3000';
+const API_BASE = 'http://3.215.176.59:3000';
 
 let currentUser = null; // { id, role, name }
 let _allMentors = [];   // 공개 멘토 목록 캐시
@@ -718,7 +718,7 @@ window.loadAdminApplications = async function (statusFilter) {
   c.innerHTML = `
     <div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap">
       <button class="chip ${!statusFilter ? 'active' : ''}" onclick="loadAdminApplications()">전체</button>
-      ${['SUBMITTED','UNDER_REVIEW','SCHEDULED','COMPLETED','CANCELLED'].map(s =>
+      ${['SUBMITTED','UNDER_REVIEW','SCHEDULED','COMPLETED','REJECTED','CANCELLED'].map(s =>
         `<button class="chip ${statusFilter===s?'active':''}" onclick="loadAdminApplications('${s}')">${statusLabel(s)}</button>`
       ).join('')}
     </div>
@@ -1114,16 +1114,13 @@ function formatAvail(start, end) {
   if (!start || !end) return '-';
   const s = new Date(start);
   const e = new Date(end);
-  const days = ['일', '월', '화', '수', '목', '금', '토'];
   const pad = n => String(n).padStart(2, '0');
-  const sDay = days[s.getDay()];
+  const sDate = `${s.getFullYear()}-${pad(s.getMonth() + 1)}-${pad(s.getDate())}`;
+  const eDate = `${e.getFullYear()}-${pad(e.getMonth() + 1)}-${pad(e.getDate())}`;
   const sTime = `${pad(s.getHours())}:${pad(s.getMinutes())}`;
   const eTime = `${pad(e.getHours())}:${pad(e.getMinutes())}`;
-  if (s.toDateString() === e.toDateString()) {
-    return `${sDay}요일 ${sTime} ~ ${eTime}`;
-  }
-  const eDay = days[e.getDay()];
-  return `${sDay}요일 ${sTime} ~ ${eDay}요일 ${eTime}`;
+  if (sDate === eDate) return `${sDate} ${sTime} ~ ${eTime}`;
+  return `${sDate} ${sTime} ~ ${eDate} ${eTime}`;
 }
 
 function formatDate(iso) {

@@ -26,7 +26,8 @@ export const assignmentService = {
 
     if (
       app.status !== APPLICATION_STATUS.SUBMITTED &&
-      app.status !== APPLICATION_STATUS.UNDER_REVIEW
+      app.status !== APPLICATION_STATUS.UNDER_REVIEW &&
+      app.status !== APPLICATION_STATUS.REJECTED
     ) {
       throw AppError.statusTransitionNotAllowed(app.status, APPLICATION_STATUS.UNDER_REVIEW);
     }
@@ -66,6 +67,12 @@ export const assignmentService = {
 
     const app = applicationRepo.findById(assignment.application_id);
     if (!app) throw AppError.notFound('신청을 찾을 수 없습니다.');
+    if (app.status === APPLICATION_STATUS.CANCELLED) {
+      throw AppError.conflict(
+        'APPLICATION_CANCELLED',
+        '이미 취소된 신청에는 승인할 수 없습니다.',
+      );
+    }
     transition(app.status, APPLICATION_STATUS.SCHEDULED);
 
     let schedule;
@@ -112,9 +119,15 @@ export const assignmentService = {
 
     const app = applicationRepo.findById(assignment.application_id);
     if (!app) throw AppError.notFound('신청을 찾을 수 없습니다.');
+    if (app.status === APPLICATION_STATUS.CANCELLED) {
+      throw AppError.conflict(
+        'APPLICATION_CANCELLED',
+        '이미 취소된 신청에는 반려할 수 없습니다.',
+      );
+    }
 
-    transition(app.status, APPLICATION_STATUS.SUBMITTED);
-    applicationRepo.updateStatus(app.id, APPLICATION_STATUS.SUBMITTED);
+    transition(app.status, APPLICATION_STATUS.REJECTED);
+    applicationRepo.updateStatus(app.id, APPLICATION_STATUS.REJECTED);
     assignmentRepo.updateStatus(assignment.id, ASSIGNMENT_STATUS.REJECTED, {
       reject_reason,
     });
@@ -122,21 +135,37 @@ export const assignmentService = {
     return {
       application_id: app.id,
       assignment_id: assignment.id,
-      status: APPLICATION_STATUS.SUBMITTED,
+      status: APPLICATION_STATUS.REJECTED,
       reject_reason,
     };
   },
 
   /**
    * 멘토 본인에게 배정된 요청 목록.
+   * 운영자에 의해 취소(application=CANCELLED)된 신청의 PENDING 배정은 제외하여
+   * 멘토 화면에 살아있는 것처럼 보이지 않게 한다.
    */
   listMyAssignments(mentorUserId, { status } = {}) {
     const profile = mentorRepo.getByUserId(mentorUserId);
     if (!profile) throw AppError.notFound('멘토 프로필이 등록되지 않았습니다.');
     const rows = assignmentRepo.listByMentor(profile.id, { status });
-    return rows.map((a) => {
-      const app = applicationRepo.findById(a.application_id);
-      return {
+    return rows
+      .map((a) => {
+        const app = applicationRepo.findById(a.application_id);
+        return { row: a, app };
+      })
+      .filter(({ row, app }) => {
+        // PENDING 인 배정인데 신청이 이미 취소되었으면 멘토에게 노출하지 않는다.
+        if (
+          row.status === ASSIGNMENT_STATUS.PENDING &&
+          app &&
+          app.status === APPLICATION_STATUS.CANCELLED
+        ) {
+          return false;
+        }
+        return true;
+      })
+      .map(({ row: a, app }) => ({
         assignment_id: a.id,
         assignment_status: a.status,
         application: app
@@ -149,7 +178,6 @@ export const assignmentService = {
               status: app.status,
             }
           : null,
-      };
-    });
+      }));
   },
 };

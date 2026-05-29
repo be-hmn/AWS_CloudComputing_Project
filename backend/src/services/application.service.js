@@ -1,10 +1,11 @@
 import { AppError } from '../domain/errors.js';
 import { ROLE } from '../domain/role.js';
-import { APPLICATION_STATUS, transition } from '../domain/status.js';
+import { APPLICATION_STATUS, ASSIGNMENT_STATUS, transition } from '../domain/status.js';
 import { applicationRepo } from '../repositories/application.repo.js';
 import { assignmentRepo } from '../repositories/assignment.repo.js';
 import { mentorRepo } from '../repositories/mentor.repo.js';
 import { userRepo } from '../repositories/user.repo.js';
+import { scheduleRepo } from '../repositories/schedule.repo.js';
 
 function shape(app) {
   return {
@@ -95,6 +96,14 @@ export const applicationService = {
     if (app.status === APPLICATION_STATUS.COMPLETED) {
       throw AppError.conflict('ALREADY_COMPLETED', '상담이 완료된 신청은 취소할 수 없습니다.');
     }
+
+    // 활성(PENDING/APPROVED) 배정을 모두 SUPERSEDED 로 종료
+    const actives = assignmentRepo.findActiveByApplication(app.id);
+    if (actives.length > 0) assignmentRepo.markSuperseded(actives.map((a) => a.id));
+
+    // 스케줄이 잡혀 있다면 함께 제거
+    scheduleRepo.removeByApplication(app.id);
+
     applicationRepo.updateStatus(app.id, APPLICATION_STATUS.CANCELLED);
     return shape(applicationRepo.findById(app.id));
   },
