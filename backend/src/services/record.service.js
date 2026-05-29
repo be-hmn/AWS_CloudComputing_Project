@@ -17,22 +17,42 @@ async function attachUrl(record) {
   return { ...record, attachment_url };
 }
 
+/** 해당 application 의 APPROVED 배정을 가진 멘토인지 검사 */
+function assertOwningMentor(mentorUserId, app) {
+  const profile = mentorRepo.getByUserId(mentorUserId);
+  if (!profile) throw AppError.forbidden();
+  const owns = assignmentRepo
+    .listByApplication(app.id)
+    .some((a) => a.mentor_id === profile.id && a.status === 'APPROVED');
+  if (!owns) throw AppError.forbidden();
+  return profile;
+}
+
 export const recordService = {
+  /**
+   * 멘토가 "상담 완료" 만 처리. 상태 전이 SCHEDULED -> COMPLETED.
+   * 기록은 별도 createRecord 에서 작성한다.
+   */
+  completeAsMentor(mentorUserId, applicationId) {
+    const app = applicationRepo.findById(applicationId);
+    if (!app) throw AppError.notFound('신청을 찾을 수 없습니다.');
+    assertOwningMentor(mentorUserId, app);
+    transition(app.status, APPLICATION_STATUS.COMPLETED);
+    applicationRepo.updateStatus(app.id, APPLICATION_STATUS.COMPLETED);
+    return { application_id: app.id, status: APPLICATION_STATUS.COMPLETED };
+  },
+
   async createRecord(mentorUserId, applicationId, body) {
     const app = applicationRepo.findById(applicationId);
     if (!app) throw AppError.notFound('신청을 찾을 수 없습니다.');
+    assertOwningMentor(mentorUserId, app);
 
-    // 해당 application 의 APPROVED assignment 의 멘토만 작성 가능
-    const profile = mentorRepo.getByUserId(mentorUserId);
-    if (!profile) throw AppError.forbidden();
-
-    const assignments = assignmentRepo.listByApplication(app.id);
-    const ownsApp = assignments.some(
-      (a) => a.mentor_id === profile.id && a.status === 'APPROVED',
-    );
-    if (!ownsApp) throw AppError.forbidden();
-
-    transition(app.status, APPLICATION_STATUS.COMPLETED);
+    if (app.status !== APPLICATION_STATUS.COMPLETED) {
+      throw AppError.conflict(
+        'STATUS_NOT_COMPLETED',
+        '상담 완료 상태에서만 기록을 작성할 수 있습니다.',
+      );
+    }
 
     let record;
     try {
@@ -47,9 +67,29 @@ export const recordService = {
       if (e.code === 'RECORD_ALREADY_EXISTS') throw AppError.recordAlreadyExists();
       throw e;
     }
-    applicationRepo.updateStatus(app.id, APPLICATION_STATUS.COMPLETED);
-
     return await attachUrl(record);
+  },
+
+  async updateRecord(mentorUserId, applicationId, body) {
+    const app = applicationRepo.findById(applicationId);
+    if (!app) throw AppError.notFound('신청을 찾을 수 없습니다.');
+    assertOwningMentor(mentorUserId, app);
+
+    if (app.status !== APPLICATION_STATUS.COMPLETED) {
+      throw AppError.conflict(
+        'STATUS_NOT_COMPLETED',
+        '상담 완료 상태에서만 기록을 수정할 수 있습니다.',
+      );
+    }
+
+    const updated = recordRepo.updateByApplication(app.id, {
+      summary: body.summary,
+      follow_up_task: body.follow_up_task,
+      needs_next_consultation: body.needs_next_consultation,
+      attachment_key: body.attachment_key,
+    });
+    if (!updated) throw AppError.notFound('상담 기록이 없습니다.');
+    return await attachUrl(updated);
   },
 
   /**

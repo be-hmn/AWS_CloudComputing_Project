@@ -2,9 +2,30 @@ import { AppError } from '../domain/errors.js';
 import { mentorRepo } from '../repositories/mentor.repo.js';
 import { userRepo } from '../repositories/user.repo.js';
 import { fileService } from './file.service.js';
+import { timeStringToMinutes, minutesToTimeString } from '../utils/datetime.js';
+
+/** body availabilities → repository row 형태로 변환 */
+function bodySlotsToRows(slots = []) {
+  return slots.map((s) => ({
+    weekday: Number(s.weekday),
+    start_minutes: timeStringToMinutes(s.start_time),
+    end_minutes: timeStringToMinutes(s.end_time),
+  }));
+}
+
+/** repository row → 클라이언트 응답 형태로 변환 */
+function rowsToResponseSlots(rows = []) {
+  return rows.map((r) => ({
+    id: r.id,
+    weekday: r.weekday,
+    start_time: minutesToTimeString(r.start_minutes),
+    end_time: minutesToTimeString(r.end_minutes),
+  }));
+}
 
 function shapeProfile(profile, { downloadUrl } = {}) {
   if (!profile) return null;
+  const rawAvail = profile.availabilities ?? mentorRepo.getAvailabilities(profile.id);
   return {
     id: profile.id,
     user_id: profile.user_id,
@@ -14,7 +35,7 @@ function shapeProfile(profile, { downloadUrl } = {}) {
     profile_image_url: downloadUrl ?? null,
     is_active: profile.is_active,
     fields: profile.fields ?? mentorRepo.getFields(profile.id),
-    availabilities: profile.availabilities ?? mentorRepo.getAvailabilities(profile.id),
+    availabilities: rowsToResponseSlots(rawAvail),
     created_at: profile.created_at,
   };
 }
@@ -32,7 +53,7 @@ export const mentorService = {
       profile_image_key: body.profile_image_key,
     });
     mentorRepo.replaceFields(profile.id, body.fields);
-    mentorRepo.replaceAvailabilities(profile.id, body.availabilities);
+    mentorRepo.replaceAvailabilities(profile.id, bodySlotsToRows(body.availabilities));
     return await this.getMyProfile(userId);
   },
 
@@ -59,7 +80,7 @@ export const mentorService = {
       profile_image_key: patch.profile_image_key,
     });
     if (patch.fields) mentorRepo.replaceFields(p.id, patch.fields);
-    if (patch.availabilities) mentorRepo.replaceAvailabilities(p.id, patch.availabilities);
+    if (patch.availabilities) mentorRepo.replaceAvailabilities(p.id, bodySlotsToRows(patch.availabilities));
     return await this.getMyProfile(userId);
   },
 
@@ -85,7 +106,7 @@ export const mentorService = {
         major: p.major,
         intro: p.intro,
         fields: p.fields ?? mentorRepo.getFields(p.id),
-        availabilities: p.availabilities ?? mentorRepo.getAvailabilities(p.id),
+        availabilities: rowsToResponseSlots(p.availabilities ?? mentorRepo.getAvailabilities(p.id)),
       };
     });
   },

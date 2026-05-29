@@ -8,6 +8,7 @@ import { applicationRepo } from '../repositories/application.repo.js';
 import { assignmentRepo } from '../repositories/assignment.repo.js';
 import { mentorRepo } from '../repositories/mentor.repo.js';
 import { scheduleRepo } from '../repositories/schedule.repo.js';
+import { mentorMatchesAvailability } from './candidate.service.js';
 
 export const assignmentService = {
   /**
@@ -35,6 +36,18 @@ export const assignmentService = {
     // 해당 멘토에게 동일 시간대(±1시간) 확정 일정이 있으면 배정 자체를 차단한다.
     if (scheduleRepo.hasConflict(mentor.id, app.desired_at)) {
       throw AppError.scheduleConflict();
+    }
+
+    // 멘토의 weekly availability 와 desired_at 이 매칭되지 않으면 배정 거부.
+    const mentorWithSlots = {
+      ...mentor,
+      availabilities: mentorRepo.getAvailabilities(mentor.id),
+    };
+    if (!mentorMatchesAvailability(mentorWithSlots, app.desired_at)) {
+      throw AppError.conflict(
+        'MENTOR_NOT_AVAILABLE',
+        '해당 시간에 멘토의 가능 시간대가 없습니다.',
+      );
     }
 
     const actives = assignmentRepo.findActiveByApplication(app.id);

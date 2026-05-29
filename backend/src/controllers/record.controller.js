@@ -11,6 +11,26 @@ export const recordController = {
     }
   },
 
+  async update(req, res, next) {
+    try {
+      const id = Number(req.params.id);
+      const r = await recordService.updateRecord(req.user.id, id, req.body);
+      res.json(r);
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  async complete(req, res, next) {
+    try {
+      const id = Number(req.params.id);
+      const r = recordService.completeAsMentor(req.user.id, id);
+      res.json(r);
+    } catch (e) {
+      next(e);
+    }
+  },
+
   async getOne(req, res, next) {
     try {
       const id = Number(req.params.id);

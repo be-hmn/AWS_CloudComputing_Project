@@ -128,13 +128,16 @@ window.submitAuth = async function () {
         const major = document.getElementById('register-major')?.value.trim();
         const fields = document.getElementById('register-fields')?.value.split(',').map(s => s.trim()).filter(Boolean);
         const intro = document.getElementById('register-intro')?.value.trim();
-        const s0 = document.getElementById('register-avail-start-0')?.value;
-        const e0 = document.getElementById('register-avail-end-0')?.value;
-        const availabilities = (s0 && e0) ? [{ start_at: new Date(s0).toISOString(), end_at: new Date(e0).toISOString() }] : [];
 
-        if (major && fields?.length && availabilities.length) {
+        // 멘토 프로필의 가능 시간은 가입 단계가 아닌 프로필 페이지에서 weekly 슬롯으로 등록한다.
+        if (major && fields?.length) {
           try {
-            await api('POST', '/api/mentors/me', { major, intro: intro || undefined, fields, availabilities });
+            await api('POST', '/api/mentors/me', {
+              major,
+              intro: intro || undefined,
+              fields,
+              availabilities: [{ weekday: 1, start_time: '09:00', end_time: '18:00' }],
+            });
           } catch { /* 나중에 프로필 페이지에서 수정 가능 */ }
         }
 
@@ -314,7 +317,7 @@ window.loadMentorList = async function (filterField) {
           <div class="mentor-avail">
             <span class="avail-label">🕐 상담 가능 시간</span>
             <ul class="avail-list">
-              ${m.availabilities.map(a => `<li>${formatAvail(a.start_at, a.end_at)}</li>`).join('')}
+              ${m.availabilities.map(a => `<li>${formatAvail(a)}</li>`).join('')}
             </ul>
           </div>
         ` : ''}
@@ -420,13 +423,19 @@ async function loadMentorProfilePage() {
   try { existing = await api('GET', '/api/mentors/me'); } catch { existing = null; }
 
   const avail = existing?.availabilities ?? [];
-  const availRows = [0, 1, 2].map(i => `
-    <div class="avail-row">
-      <input type="datetime-local" class="avail-start" style="flex:1" value="${toLocalInputValue(avail[i]?.start_at)}">
+  const initialRows = avail.length > 0 ? avail : [{ weekday: 1, start_time: '', end_time: '' }];
+  const renderAvailRow = (slot, idx) => `
+    <div class="avail-row" data-idx="${idx}">
+      <select class="avail-weekday" style="flex:1">
+        ${[0,1,2,3,4,5,6].map(w => `<option value="${w}" ${slot?.weekday === w ? 'selected' : ''}>${WEEKDAY_KO[w]}요일</option>`).join('')}
+      </select>
+      <input type="time" class="avail-start" style="flex:1" value="${esc(slot?.start_time || '')}">
       <span style="align-self:center">~</span>
-      <input type="datetime-local" class="avail-end" style="flex:1" value="${toLocalInputValue(avail[i]?.end_at)}">
+      <input type="time" class="avail-end" style="flex:1" value="${esc(slot?.end_time || '')}">
+      <button type="button" class="btn-sm cancel" onclick="removeAvailRow(this)" style="padding:0.4rem 0.7rem">✕</button>
     </div>
-  `).join('');
+  `;
+  const availRows = initialRows.map(renderAvailRow).join('');
 
   container.innerHTML = `
     <form class="register-form" onsubmit="submitMentorProfile(event)">
@@ -443,13 +452,40 @@ async function loadMentorProfilePage() {
         <input type="text" id="mp-fields" placeholder="예: 웹개발, 백엔드, AWS" required value="${esc((existing?.fields || []).join(', '))}">
       </div>
       <div class="form-group">
-        <label>상담 가능 시간대 <small>(최대 3개)</small></label>
+        <label>상담 가능 시간대 <small>(요일·시작~종료, 최대 14개)</small></label>
         <div id="avail-container">${availRows}</div>
+        <button type="button" class="btn-sm" style="margin-top:0.5rem;background:#edf2f7" onclick="addAvailRow()">+ 시간대 추가</button>
       </div>
       <button type="submit" class="btn-submit">${existing ? '프로필 수정' : '프로필 등록'}</button>
     </form>
   `;
 }
+
+window.addAvailRow = function () {
+  const container = document.getElementById('avail-container');
+  if (!container) return;
+  if (container.children.length >= 14) { showToast('최대 14개까지 추가할 수 있습니다.', 'error'); return; }
+  const idx = container.children.length;
+  const html = `
+    <div class="avail-row" data-idx="${idx}">
+      <select class="avail-weekday" style="flex:1">
+        ${[0,1,2,3,4,5,6].map(w => `<option value="${w}" ${w===1?'selected':''}>${WEEKDAY_KO[w]}요일</option>`).join('')}
+      </select>
+      <input type="time" class="avail-start" style="flex:1">
+      <span style="align-self:center">~</span>
+      <input type="time" class="avail-end" style="flex:1">
+      <button type="button" class="btn-sm cancel" onclick="removeAvailRow(this)" style="padding:0.4rem 0.7rem">✕</button>
+    </div>
+  `;
+  container.insertAdjacentHTML('beforeend', html);
+};
+
+window.removeAvailRow = function (btn) {
+  const row = btn.closest('.avail-row');
+  const container = document.getElementById('avail-container');
+  if (container.children.length <= 1) { showToast('최소 1개 시간대가 필요합니다.', 'error'); return; }
+  row?.remove();
+};
 
 window.submitMentorProfile = async function (e) {
   e.preventDefault();
@@ -457,12 +493,13 @@ window.submitMentorProfile = async function (e) {
   const intro = document.getElementById('mp-intro').value.trim();
   const fields = document.getElementById('mp-fields').value.split(',').map(s => s.trim()).filter(Boolean);
 
-  const starts = document.querySelectorAll('.avail-start');
-  const ends = document.querySelectorAll('.avail-end');
+  const rows = document.querySelectorAll('#avail-container .avail-row');
   const availabilities = [];
-  for (let i = 0; i < starts.length; i++) {
-    const s = starts[i].value, en = ends[i].value;
-    if (s && en) availabilities.push({ start_at: new Date(s).toISOString(), end_at: new Date(en).toISOString() });
+  for (const row of rows) {
+    const w = Number(row.querySelector('.avail-weekday').value);
+    const s = row.querySelector('.avail-start').value;
+    const en = row.querySelector('.avail-end').value;
+    if (s && en) availabilities.push({ weekday: w, start_time: s, end_time: en });
   }
 
   if (!major || !fields.length) { showToast('직무와 분야는 필수입니다.', 'error'); return; }
@@ -630,7 +667,10 @@ async function loadMyAssignments(statusFilter) {
               <button class="btn-sm reject" onclick="openRejectModal(${item.assignment_id})">반려</button>
             ` : ''}
             ${app?.status === 'SCHEDULED' && item.assignment_status === 'APPROVED' ? `
-              <button class="btn-sm record" onclick="openRecordModal(${app.id})">상담 완료 & 기록 작성</button>
+              <button class="btn-sm record" onclick="completeAssignment(${app.id})">상담 완료</button>
+            ` : ''}
+            ${app?.status === 'COMPLETED' && item.assignment_status === 'APPROVED' ? `
+              <button class="btn-sm record" onclick="openRecordModal(${app.id})">기록 작성</button>
             ` : ''}
             ${item.assignment_status === 'APPROVED' ? `
               <button class="btn-sm" style="background:#9f7aea;color:white" onclick="openChatModal(${app.id})">채팅</button>
@@ -681,12 +721,28 @@ window.submitReject = async function () {
   finally { if (btn) { btn.disabled = false; btn.textContent = '반려하기'; } }
 };
 
-// ─── MENTOR: 기록 모달 ───
-window.openRecordModal = function (applicationId) {
+// ─── MENTOR: 상담 완료 ───
+window.completeAssignment = async function (applicationId) {
+  if (!confirm('이 신청을 상담 완료 처리하시겠습니까? 이후 기록을 작성할 수 있습니다.')) return;
+  try {
+    await api('POST', `/api/applications/${applicationId}/complete`);
+    showToast('상담 완료 처리되었습니다.', 'success');
+    loadMyAssignments();
+  } catch (e) { showToast(e.message, 'error'); }
+};
+
+// ─── MENTOR: 기록 모달 (작성 + 수정) ───
+let _recordEditMode = false; // false=create, true=update
+window.openRecordModal = function (applicationId, prefill) {
   _pendingRecordAppId = applicationId;
-  document.getElementById('record-summary').value = '';
-  document.getElementById('record-followup').value = '';
-  document.getElementById('record-next-consult').checked = false;
+  _recordEditMode = !!prefill;
+  document.getElementById('record-summary').value = prefill?.summary || '';
+  document.getElementById('record-followup').value = prefill?.follow_up_task || '';
+  document.getElementById('record-next-consult').checked = !!prefill?.needs_next_consultation;
+  const btn = document.querySelector('#modal-record .btn-submit');
+  if (btn) btn.textContent = _recordEditMode ? '기록 수정' : '기록 저장';
+  const title = document.querySelector('#modal-record .modal-header h3');
+  if (title) title.textContent = _recordEditMode ? '상담 기록 수정' : '상담 기록 작성';
   document.getElementById('modal-record').style.display = 'flex';
 };
 window.closeRecordModal = function () {
@@ -698,18 +754,22 @@ window.submitRecord = async function () {
   const needs_next_consultation = document.getElementById('record-next-consult').checked;
   if (!summary) { showToast('상담 요약은 필수입니다.', 'error'); return; }
   const btn = document.querySelector('#modal-record .btn-submit');
+  const baseLabel = _recordEditMode ? '기록 수정' : '기록 저장';
   try {
     if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
-    await api('POST', `/api/applications/${_pendingRecordAppId}/record`, {
+    const method = _recordEditMode ? 'PUT' : 'POST';
+    await api(method, `/api/applications/${_pendingRecordAppId}/record`, {
       summary,
       follow_up_task: follow_up_task || undefined,
       needs_next_consultation,
     });
     closeRecordModal();
-    showToast('기록이 저장되었습니다!', 'success');
+    showToast(_recordEditMode ? '기록이 수정되었습니다!' : '기록이 저장되었습니다!', 'success');
     loadMyAssignments();
+    // 기록 탭이 열려 있으면 같이 새로고침
+    if (document.querySelector('.chat-tab.active')?.textContent === '상담 기록') loadMentorRecords();
   } catch (e) { showToast(e.message, 'error'); }
-  finally { if (btn) { btn.disabled = false; btn.textContent = '기록 저장'; } }
+  finally { if (btn) { btn.disabled = false; btn.textContent = baseLabel; } }
 };
 
 // ─── ADMIN: 신청 관리 ───
@@ -939,14 +999,24 @@ async function loadMentorRecords() {
   try {
     const records = await api('GET', '/api/mentors/me/records');
     if (!records.length) { c.innerHTML = '<div class="empty">작성한 상담 기록이 없습니다.</div>'; return; }
-    c.innerHTML = records.map(r => `
+    c.innerHTML = records.map(r => {
+      const prefill = JSON.stringify({
+        summary: r.summary,
+        follow_up_task: r.follow_up_task,
+        needs_next_consultation: !!r.needs_next_consultation,
+      }).replace(/'/g, "\\'");
+      return `
       <div class="record-item">
         <div class="record-meta">신청 #${r.application_id} · ${formatDate(r.created_at)}</div>
         <div class="record-summary">${esc(r.summary)}</div>
         ${r.follow_up_task ? `<div class="record-followup"><strong>후속 과제:</strong> ${esc(r.follow_up_task)}</div>` : ''}
         ${r.needs_next_consultation ? '<div class="record-next">🔄 다음 상담 필요</div>' : ''}
+        <div class="chat-item-actions" style="margin-top:0.5rem">
+          <button class="btn-sm approve" onclick='openRecordModal(${r.application_id}, ${prefill})'>수정</button>
+        </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   } catch (e) { c.innerHTML = `<div class="empty">${e.message}</div>`; }
 }
 
@@ -1110,17 +1180,12 @@ function assignStatusClass(s) {
   return { PENDING: 'review', APPROVED: 'confirmed', REJECTED: 'rejected', SUPERSEDED: 'cancelled' }[s] || '';
 }
 
-function formatAvail(start, end) {
-  if (!start || !end) return '-';
-  const s = new Date(start);
-  const e = new Date(end);
-  const pad = n => String(n).padStart(2, '0');
-  const sDate = `${s.getFullYear()}-${pad(s.getMonth() + 1)}-${pad(s.getDate())}`;
-  const eDate = `${e.getFullYear()}-${pad(e.getMonth() + 1)}-${pad(e.getDate())}`;
-  const sTime = `${pad(s.getHours())}:${pad(s.getMinutes())}`;
-  const eTime = `${pad(e.getHours())}:${pad(e.getMinutes())}`;
-  if (sDate === eDate) return `${sDate} ${sTime} ~ ${eTime}`;
-  return `${sDate} ${sTime} ~ ${eDate} ${eTime}`;
+const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
+
+function formatAvail(slot) {
+  if (!slot || slot.weekday === undefined) return '-';
+  const day = WEEKDAY_KO[slot.weekday] ?? '?';
+  return `${day}요일 ${slot.start_time} ~ ${slot.end_time}`;
 }
 
 function formatDate(iso) {

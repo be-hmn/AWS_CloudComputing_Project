@@ -64,11 +64,11 @@ export const mentorRepo = {
     return unique;
   },
 
-  // ---------- availabilities ----------
+  // ---------- availabilities (weekly slots) ----------
   getAvailabilities(mentorId) {
     return Array.from(store.mentor_availabilities.values())
       .filter((a) => a.mentor_id === Number(mentorId))
-      .sort((a, b) => a.start_at.localeCompare(b.start_at));
+      .sort((a, b) => a.weekday - b.weekday || a.start_minutes - b.start_minutes);
   },
 
   replaceAvailabilities(mentorId, slots) {
@@ -79,7 +79,13 @@ export const mentorRepo = {
     const inserted = [];
     for (const s of slots) {
       const id = seq.mentor_availabilities.next();
-      const row = { id, mentor_id: mid, start_at: s.start_at, end_at: s.end_at };
+      const row = {
+        id,
+        mentor_id: mid,
+        weekday: Number(s.weekday),
+        start_minutes: Number(s.start_minutes),
+        end_minutes: Number(s.end_minutes),
+      };
       store.mentor_availabilities.set(id, row);
       inserted.push(row);
     }

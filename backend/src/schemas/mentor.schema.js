@@ -1,22 +1,31 @@
 import { z } from 'zod';
 import { AppError } from '../domain/errors.js';
+import { timeStringToMinutes } from '../utils/datetime.js';
 
-const isoDate = z.string().refine((s) => !Number.isNaN(Date.parse(s)), {
-  message: 'invalid ISO date',
-});
-
+/**
+ * 주간 반복 가능 시간 슬롯.
+ *  weekday: 0(일) ~ 6(토)
+ *  start_time/end_time: "HH:mm" (24h)
+ */
 const availabilitySlot = z
   .object({
-    start_at: isoDate,
-    end_at: isoDate,
+    weekday: z.coerce.number().int().min(0).max(6),
+    start_time: z.string(),
+    end_time: z.string(),
   })
   .superRefine((val, ctx) => {
-    if (Date.parse(val.end_at) <= Date.parse(val.start_at)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['end_at'],
-        message: 'end_at must be after start_at',
-      });
+    const sm = timeStringToMinutes(val.start_time);
+    const em = timeStringToMinutes(val.end_time);
+    if (sm === null) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['start_time'], message: 'invalid HH:mm' });
+      return;
+    }
+    if (em === null) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['end_time'], message: 'invalid HH:mm' });
+      return;
+    }
+    if (em <= sm) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['end_time'], message: 'end_time must be after start_time' });
     }
   });
 
@@ -24,7 +33,7 @@ export const createProfileBody = z.object({
   major: z.string().min(1).max(100),
   intro: z.string().max(2000).optional(),
   fields: z.array(z.string().min(1).max(64)).min(1),
-  availabilities: z.array(availabilitySlot).min(1),
+  availabilities: z.array(availabilitySlot).min(1).max(14),
   profile_image_key: z.string().max(512).optional(),
 });
 
@@ -33,7 +42,7 @@ export const patchProfileBody = z
     major: z.string().min(1).max(100).optional(),
     intro: z.string().max(2000).optional(),
     fields: z.array(z.string().min(1).max(64)).min(1).optional(),
-    availabilities: z.array(availabilitySlot).min(1).optional(),
+    availabilities: z.array(availabilitySlot).min(1).max(14).optional(),
     profile_image_key: z.string().max(512).optional(),
   })
   .refine((v) => Object.keys(v).length > 0, {
@@ -46,9 +55,11 @@ export const setActiveBody = z.object({
 
 export { availabilitySlot };
 
-/** 서비스 레이어에서 추가 검증이 필요할 때 사용하는 헬퍼 */
+/** 서비스 레이어 보조용 */
 export function assertValidSlot(slot) {
-  if (Date.parse(slot.end_at) <= Date.parse(slot.start_at)) {
-    throw AppError.invalidTimeFormat('end_at must be after start_at');
+  const sm = timeStringToMinutes(slot.start_time);
+  const em = timeStringToMinutes(slot.end_time);
+  if (sm === null || em === null || em <= sm) {
+    throw AppError.invalidTimeFormat('가능 시간이 올바르지 않습니다.');
   }
 }
