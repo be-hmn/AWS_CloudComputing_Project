@@ -129,14 +129,22 @@ window.submitAuth = async function () {
         const fields = document.getElementById('register-fields')?.value.split(',').map(s => s.trim()).filter(Boolean);
         const intro = document.getElementById('register-intro')?.value.trim();
 
-        // 멘토 프로필의 가능 시간은 가입 단계가 아닌 프로필 페이지에서 weekly 슬롯으로 등록한다.
+        const availRows = document.querySelectorAll('#register-avail-container .avail-row');
+        const availabilities = [];
+        for (const row of availRows) {
+          const w = Number(row.querySelector('.avail-weekday').value);
+          const s = row.querySelector('.avail-start').value;
+          const en = row.querySelector('.avail-end').value;
+          if (s && en) availabilities.push({ weekday: w, start_time: s, end_time: en });
+        }
+
         if (major && fields?.length) {
           try {
             await api('POST', '/api/mentors/me', {
               major,
               intro: intro || undefined,
               fields,
-              availabilities: [{ weekday: 1, start_time: '09:00', end_time: '18:00' }],
+              availabilities: availabilities.length ? availabilities : [{ weekday: 1, start_time: '09:00', end_time: '18:00' }],
             });
           } catch { /* 나중에 프로필 페이지에서 수정 가능 */ }
         }
@@ -321,7 +329,6 @@ window.loadMentorList = async function (filterField) {
             </ul>
           </div>
         ` : ''}
-        <button class="apply-btn" onclick="applyMentor(${m.id},'${esc(m.fields?.[0] || '')}')">상담 신청하기</button>
       </div>
     `).join('');
   } catch (e) {
@@ -352,7 +359,7 @@ window.toggleFilter = function (el) { el.classList.toggle('active'); };
 // ═══════════════════════════════════════════════
 //  Apply Modal
 // ═══════════════════════════════════════════════
-window.applyMentor = function (mentorId, defaultField) {
+window.applyMentor = function () {
   if (!currentUser) {
     showToast('로그인이 필요합니다.', 'error');
     openAuthModal('login');
@@ -362,9 +369,7 @@ window.applyMentor = function (mentorId, defaultField) {
     showToast('멘티 계정으로만 신청할 수 있습니다.', 'error');
     return;
   }
-  _pendingApplyField = defaultField || '';
-  _pendingApplyMentorId = null;
-  document.getElementById('apply-field').value = _pendingApplyField;
+  document.getElementById('apply-field').value = '';
   document.getElementById('apply-topic').value = '';
   document.getElementById('apply-desired-at').value = '';
   document.getElementById('apply-message').value = '';
@@ -487,6 +492,32 @@ window.removeAvailRow = function (btn) {
   row?.remove();
 };
 
+window.addRegisterAvailRow = function () {
+  const container = document.getElementById('register-avail-container');
+  if (!container) return;
+  if (container.children.length >= 14) { showToast('최대 14개까지 추가할 수 있습니다.', 'error'); return; }
+  const idx = container.children.length;
+  const html = `
+    <div class="avail-row" data-idx="${idx}">
+      <select class="avail-weekday" style="flex:1">
+        ${[0,1,2,3,4,5,6].map(w => `<option value="${w}" ${w===1?'selected':''}>${WEEKDAY_KO[w]}요일</option>`).join('')}
+      </select>
+      <input type="time" class="avail-start" style="flex:1">
+      <span style="align-self:center">~</span>
+      <input type="time" class="avail-end" style="flex:1">
+      <button type="button" class="btn-sm cancel" onclick="removeRegisterAvailRow(this)" style="padding:0.4rem 0.7rem">✕</button>
+    </div>
+  `;
+  container.insertAdjacentHTML('beforeend', html);
+};
+
+window.removeRegisterAvailRow = function (btn) {
+  const row = btn.closest('.avail-row');
+  const container = document.getElementById('register-avail-container');
+  if (container.children.length <= 1) { showToast('최소 1개 시간대가 필요합니다.', 'error'); return; }
+  row?.remove();
+};
+
 window.submitMentorProfile = async function (e) {
   e.preventDefault();
   const major = document.getElementById('mp-major').value.trim();
@@ -603,7 +634,7 @@ async function loadSentApplications() {
       <div class="chat-item">
         <div class="chat-item-header">
           <h4>${esc(a.interest_field)} · ${esc(a.topic)}</h4>
-          <span class="chat-status ${statusClass(a.status)}">${statusLabel(a.status)}</span>
+          <span class="chat-status ${a.status === 'REJECTED' ? 'review' : statusClass(a.status)}">${a.status === 'REJECTED' ? '배정 조율중' : statusLabel(a.status)}</span>
         </div>
         <div class="chat-item-body">희망 일시: ${formatDate(a.desired_at)}${a.message ? `<br>메시지: ${esc(a.message)}` : ''}</div>
         <div class="chat-item-date">${formatDate(a.created_at)}</div>
@@ -808,6 +839,9 @@ window.loadAdminApplications = async function (statusFilter) {
         <div class="chat-item-actions">
           ${(a.status === 'SUBMITTED' || a.status === 'UNDER_REVIEW') ? `
             <button class="btn-sm approve" onclick="openCandidatesModal(${a.id})">멘토 배정</button>
+          ` : ''}
+          ${a.status === 'REJECTED' ? `
+            <button class="btn-sm approve" onclick="openCandidatesModal(${a.id})">멘토 재배정</button>
           ` : ''}
           ${(a.status !== 'CANCELLED' && a.status !== 'COMPLETED') ? `
             <button class="btn-sm cancel" onclick="cancelAdminApp(${a.id})">취소</button>
