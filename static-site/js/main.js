@@ -439,9 +439,9 @@ async function loadMentorProfilePage() {
       <select class="avail-weekday" style="flex:1">
         ${[0,1,2,3,4,5,6].map(w => `<option value="${w}" ${slot?.weekday === w ? 'selected' : ''}>${WEEKDAY_KO[w]}요일</option>`).join('')}
       </select>
-      <input type="time" class="avail-start" style="flex:1" value="${esc(slot?.start_time || '')}">
+      <input type="time" class="avail-start" style="flex:1" step="1800" value="${esc(slot?.start_time || '')}">
       <span style="align-self:center">~</span>
-      <input type="time" class="avail-end" style="flex:1" value="${esc(slot?.end_time || '')}">
+      <input type="time" class="avail-end" style="flex:1" step="1800" value="${esc(slot?.end_time || '')}">
       <button type="button" class="btn-sm cancel" onclick="removeAvailRow(this)" style="padding:0.4rem 0.7rem">✕</button>
     </div>
   `;
@@ -481,9 +481,9 @@ window.addAvailRow = function () {
       <select class="avail-weekday" style="flex:1">
         ${[0,1,2,3,4,5,6].map(w => `<option value="${w}" ${w===1?'selected':''}>${WEEKDAY_KO[w]}요일</option>`).join('')}
       </select>
-      <input type="time" class="avail-start" style="flex:1">
+      <input type="time" class="avail-start" style="flex:1" step="1800">
       <span style="align-self:center">~</span>
-      <input type="time" class="avail-end" style="flex:1">
+      <input type="time" class="avail-end" style="flex:1" step="1800">
       <button type="button" class="btn-sm cancel" onclick="removeAvailRow(this)" style="padding:0.4rem 0.7rem">✕</button>
     </div>
   `;
@@ -507,9 +507,9 @@ window.addRegisterAvailRow = function () {
       <select class="avail-weekday" style="flex:1">
         ${[0,1,2,3,4,5,6].map(w => `<option value="${w}" ${w===1?'selected':''}>${WEEKDAY_KO[w]}요일</option>`).join('')}
       </select>
-      <input type="time" class="avail-start" style="flex:1">
+      <input type="time" class="avail-start" style="flex:1" step="1800">
       <span style="align-self:center">~</span>
-      <input type="time" class="avail-end" style="flex:1">
+      <input type="time" class="avail-end" style="flex:1" step="1800">
       <button type="button" class="btn-sm cancel" onclick="removeRegisterAvailRow(this)" style="padding:0.4rem 0.7rem">✕</button>
     </div>
   `;
