@@ -9,6 +9,7 @@ let _allMentors = [];   // 공개 멘토 목록 캐시
 // 모달 상태
 let _pendingApplyField = '';
 let _pendingApplyMentorId = null;
+let _pendingRegisterAvail = null; // 멘토 가입 시 입력한 시간 임시 저장
 let _pendingApproveId = null;
 let _pendingRejectId = null;
 let _pendingRecordAppId = null;
@@ -138,6 +139,8 @@ window.submitAuth = async function () {
           if (s && en) availabilities.push({ weekday: w, start_time: s, end_time: en });
         }
 
+        if (availabilities.length) _pendingRegisterAvail = availabilities;
+
         if (major && fields?.length) {
           try {
             await api('POST', '/api/mentors/me', {
@@ -146,7 +149,9 @@ window.submitAuth = async function () {
               fields,
               availabilities: availabilities.length ? availabilities : [{ weekday: 1, start_time: '09:00', end_time: '18:00' }],
             });
-          } catch { /* 나중에 프로필 페이지에서 수정 가능 */ }
+          } catch (e) {
+            showToast('프로필 저장 중 오류: ' + e.message, 'error');
+          }
         }
 
         closeAuthModal();
@@ -433,7 +438,10 @@ async function loadMentorProfilePage() {
   try { existing = await api('GET', '/api/mentors/me'); } catch { existing = null; }
 
   const avail = existing?.availabilities ?? [];
-  const initialRows = avail.length > 0 ? avail : [{ weekday: 1, start_time: '', end_time: '' }];
+  const initialRows = avail.length > 0
+    ? avail
+    : (_pendingRegisterAvail?.length ? _pendingRegisterAvail : [{ weekday: 1, start_time: '', end_time: '' }]);
+  _pendingRegisterAvail = null;
   const renderAvailRow = (slot, idx) => {
     const [sh, sm] = _timeToHM(slot?.start_time);
     const [eh, em] = _timeToHM(slot?.end_time);
