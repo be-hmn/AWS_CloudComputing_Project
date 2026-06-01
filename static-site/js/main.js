@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════
 //  Config & State
 // ═══════════════════════════════════════════════
-const API_BASE = 'http://3.215.176.59:3000';
+const API_BASE = 'http://3.227.242.254:3000';
 
 let currentUser = null; // { id, role, name }
 let _allMentors = [];   // 공개 멘토 목록 캐시
