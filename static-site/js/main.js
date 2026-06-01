@@ -371,7 +371,9 @@ window.applyMentor = function () {
   }
   document.getElementById('apply-field').value = '';
   document.getElementById('apply-topic').value = '';
-  document.getElementById('apply-desired-at').value = '';
+  document.getElementById('apply-desired-date').value = '';
+  document.getElementById('apply-desired-hour').value = '';
+  document.getElementById('apply-desired-minute').value = '';
   document.getElementById('apply-message').value = '';
   document.getElementById('modal-apply').style.display = 'flex';
 };
@@ -383,10 +385,12 @@ window.closeApplyModal = function () {
 window.submitApply = async function () {
   const interest_field = document.getElementById('apply-field').value.trim();
   const topic = document.getElementById('apply-topic').value.trim();
-  const desired_at_raw = document.getElementById('apply-desired-at').value;
+  const desired_date = document.getElementById('apply-desired-date').value;
+  const desired_hour = document.getElementById('apply-desired-hour').value;
+  const desired_minute = document.getElementById('apply-desired-minute').value;
   const message = document.getElementById('apply-message').value.trim();
 
-  if (!interest_field || !topic || !desired_at_raw) {
+  if (!interest_field || !topic || !desired_date || desired_hour === '' || desired_minute === '') {
     showToast('분야, 주제, 희망 일시는 필수입니다.', 'error');
     return;
   }
@@ -394,12 +398,8 @@ window.submitApply = async function () {
     showToast('요청 사항을 입력하세요.', 'error');
     return;
   }
-  const desired_at_obj = new Date(desired_at_raw);
-  if (desired_at_obj.getMinutes() % 30 !== 0) {
-    showToast('희망 일시는 30분 단위로 입력해주세요. (예: 09:00, 09:30)', 'error');
-    return;
-  }
-  const desired_at = desired_at_obj.toISOString();
+  const pad = n => String(n).padStart(2, '0');
+  const desired_at = new Date(`${desired_date}T${pad(desired_hour)}:${desired_minute}:00`).toISOString();
 
   const btn = document.querySelector('#modal-apply .btn-submit');
   try {
