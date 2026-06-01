@@ -133,8 +133,8 @@ window.submitAuth = async function () {
         const availabilities = [];
         for (const row of availRows) {
           const w = Number(row.querySelector('.avail-weekday').value);
-          const s = row.querySelector('.avail-start').value;
-          const en = row.querySelector('.avail-end').value;
+          const s = _hmToTime(row.querySelector('.avail-start-h').value, row.querySelector('.avail-start-m').value);
+          const en = _hmToTime(row.querySelector('.avail-end-h').value, row.querySelector('.avail-end-m').value);
           if (s && en) availabilities.push({ weekday: w, start_time: s, end_time: en });
         }
 
@@ -434,17 +434,22 @@ async function loadMentorProfilePage() {
 
   const avail = existing?.availabilities ?? [];
   const initialRows = avail.length > 0 ? avail : [{ weekday: 1, start_time: '', end_time: '' }];
-  const renderAvailRow = (slot, idx) => `
+  const renderAvailRow = (slot, idx) => {
+    const [sh, sm] = _timeToHM(slot?.start_time);
+    const [eh, em] = _timeToHM(slot?.end_time);
+    return `
     <div class="avail-row" data-idx="${idx}">
       <select class="avail-weekday" style="flex:1">
         ${[0,1,2,3,4,5,6].map(w => `<option value="${w}" ${slot?.weekday === w ? 'selected' : ''}>${WEEKDAY_KO[w]}요일</option>`).join('')}
       </select>
-      <input type="time" class="avail-start" style="flex:1" step="1800" value="${esc(slot?.start_time || '')}">
+      <select class="avail-start-h" style="flex:1">${_hourOpts(sh)}</select>
+      <select class="avail-start-m" style="flex:1">${_minOpts(sm)}</select>
       <span style="align-self:center">~</span>
-      <input type="time" class="avail-end" style="flex:1" step="1800" value="${esc(slot?.end_time || '')}">
+      <select class="avail-end-h" style="flex:1">${_hourOpts(eh)}</select>
+      <select class="avail-end-m" style="flex:1">${_minOpts(em)}</select>
       <button type="button" class="btn-sm cancel" onclick="removeAvailRow(this)" style="padding:0.4rem 0.7rem">✕</button>
     </div>
-  `;
+  `;};
   const availRows = initialRows.map(renderAvailRow).join('');
 
   container.innerHTML = `
@@ -481,9 +486,11 @@ window.addAvailRow = function () {
       <select class="avail-weekday" style="flex:1">
         ${[0,1,2,3,4,5,6].map(w => `<option value="${w}" ${w===1?'selected':''}>${WEEKDAY_KO[w]}요일</option>`).join('')}
       </select>
-      <input type="time" class="avail-start" style="flex:1" step="1800">
+      <select class="avail-start-h" style="flex:1">${_hourOpts('')}</select>
+      <select class="avail-start-m" style="flex:1">${_minOpts('')}</select>
       <span style="align-self:center">~</span>
-      <input type="time" class="avail-end" style="flex:1" step="1800">
+      <select class="avail-end-h" style="flex:1">${_hourOpts('')}</select>
+      <select class="avail-end-m" style="flex:1">${_minOpts('')}</select>
       <button type="button" class="btn-sm cancel" onclick="removeAvailRow(this)" style="padding:0.4rem 0.7rem">✕</button>
     </div>
   `;
@@ -507,9 +514,11 @@ window.addRegisterAvailRow = function () {
       <select class="avail-weekday" style="flex:1">
         ${[0,1,2,3,4,5,6].map(w => `<option value="${w}" ${w===1?'selected':''}>${WEEKDAY_KO[w]}요일</option>`).join('')}
       </select>
-      <input type="time" class="avail-start" style="flex:1" step="1800">
+      <select class="avail-start-h" style="flex:1">${_hourOpts('')}</select>
+      <select class="avail-start-m" style="flex:1">${_minOpts('')}</select>
       <span style="align-self:center">~</span>
-      <input type="time" class="avail-end" style="flex:1" step="1800">
+      <select class="avail-end-h" style="flex:1">${_hourOpts('')}</select>
+      <select class="avail-end-m" style="flex:1">${_minOpts('')}</select>
       <button type="button" class="btn-sm cancel" onclick="removeRegisterAvailRow(this)" style="padding:0.4rem 0.7rem">✕</button>
     </div>
   `;
@@ -533,8 +542,8 @@ window.submitMentorProfile = async function (e) {
   const availabilities = [];
   for (const row of rows) {
     const w = Number(row.querySelector('.avail-weekday').value);
-    const s = row.querySelector('.avail-start').value;
-    const en = row.querySelector('.avail-end').value;
+    const s = _hmToTime(row.querySelector('.avail-start-h').value, row.querySelector('.avail-start-m').value);
+    const en = _hmToTime(row.querySelector('.avail-end-h').value, row.querySelector('.avail-end-m').value);
     if (s && en) availabilities.push({ weekday: w, start_time: s, end_time: en });
   }
 
@@ -1220,6 +1229,24 @@ function assignStatusClass(s) {
 }
 
 const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
+
+function _hourOpts(selected) {
+  return '<option value="">시</option>' +
+    [...Array(24)].map((_, i) => `<option value="${i}"${Number(selected) === i && selected !== '' ? ' selected' : ''}>${i}</option>`).join('');
+}
+function _minOpts(selected) {
+  return '<option value="">분</option>' +
+    ['00','30'].map(m => `<option value="${m}"${selected === m ? ' selected' : ''}>${m}</option>`).join('');
+}
+function _timeToHM(timeStr) {
+  if (!timeStr) return ['', ''];
+  const [h, m] = timeStr.split(':');
+  return [h ? String(Number(h)) : '', m === '00' || m === '30' ? m : ''];
+}
+function _hmToTime(h, m) {
+  if (h === '' || m === '') return '';
+  return `${String(h).padStart(2,'0')}:${m}`;
+}
 
 function formatAvail(slot) {
   if (!slot || slot.weekday === undefined) return '-';
