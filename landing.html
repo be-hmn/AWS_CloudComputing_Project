@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Match Point — 나에게 딱 맞는 멘토 찾기</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Pretendard', 'Apple SD Gothic Neo', system-ui, sans-serif;
+      font-size: 15px;
+      color: #1c0900;
+      background: #fdf6f0;
+      line-height: 1.65;
+    }
+    .title-font { font-family: 'Nunito', 'Pretendard', system-ui, sans-serif; }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 5vw; height: 64px;
+      background: rgba(253,246,240,.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1.5px solid #f0ddd4;
+      box-shadow: 0 2px 12px rgba(249,115,22,.06);
+    }
+    .nav-brand { display: flex; align-items: center; gap: .6rem; text-decoration: none; }
+    .nav-brand-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #fb923c, #f97316);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 10px rgba(249,115,22,.3);
+    }
+    .nav-brand-name { font-family: 'Nunito', sans-serif; font-size: 1.05rem; font-weight: 900; color: #1c0900; }
+    .nav-actions { display: flex; gap: .6rem; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; border: none; border-radius: 12px; padding: .6rem 1.3rem; font: 700 .84rem 'Pretendard', sans-serif; cursor: pointer; transition: all .18s; text-decoration: none; white-space: nowrap; }
+    .btn-ghost { background: transparent; color: #6b3f2a; }
+    .btn-ghost:hover { background: #fff3e8; }
+    .btn-primary { background: linear-gradient(135deg, #fb923c, #f97316); color: #fff; box-shadow: 0 4px 14px rgba(249,115,22,.35); }
+    .btn-primary:hover { box-shadow: 0 6px 20px rgba(249,115,22,.45); filter: brightness(1.04); }
+    .btn-outline { background: transparent; border: 2px solid #f97316; color: #f97316; }
+    .btn-outline:hover { background: #fff3e8; }
+    .btn-lg { padding: .85rem 2rem; font-size: .95rem; border-radius: 16px; }
+    .btn-xl { padding: 1rem 2.5rem; font-size: 1rem; border-radius: 18px; }
+
+    /* ── Hero ── */
+    .hero {
+      min-height: 100dvh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 80px 5vw 4rem;
+      background: linear-gradient(160deg, #fff8f3 0%, #ffe8d0 50%, #ffd4aa 100%);
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 20% 30%, rgba(249,115,22,.12) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 80% 70%, rgba(251,191,36,.1) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: .5rem;
+      background: #fff; border: 1.5px solid #fcd9b6;
+      border-radius: 99px; padding: .35rem 1rem;
+      font-size: .78rem; font-weight: 700; color: #c2410c;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(249,115,22,.1);
+      animation: fadeDown .6s ease;
+    }
+    .hero-badge span { display: inline-block; width: 7px; height: 7px; background: #f97316; border-radius: 50%; animation: pulse 1.8s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.6; transform:scale(1.3); } }
+    .hero h1 {
+      font-family: 'Nunito', sans-serif;
+      font-size: clamp(2.2rem, 6vw, 4rem);
+      font-weight: 900;
+      color: #1c0900;
+      letter-spacing: -.04em;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+      animation: fadeDown .7s .1s ease both;
+    }
+    .hero h1 .highlight {
+      background: linear-gradient(135deg, #f97316, #fbbf24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: clamp(.9rem, 2vw, 1.1rem);
+      color: #6b3f2a;
+      max-width: 520px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.75;
+      animation: fadeDown .7s .2s ease both;
+    }
+    .hero-actions { display: flex; gap: .75rem; flex-wrap: wrap; justify-content: center; animation: fadeDown .7s .3s ease both; margin-bottom: 3rem; }
+    .hero-stats {
+      display: flex; gap: 2.5rem; justify-content: center; flex-wrap: wrap;
+      animation: fadeDown .7s .4s ease both;
+    }
+    .hero-stat { text-align: center; }
+    .hero-stat-num { font-family: 'Nunito', sans-serif; font-size: 1.6rem; font-weight: 900; color: #f97316; }
+    .hero-stat-label { font-size: .75rem; color: #b07d65; font-weight: 600; }
+    @keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:none; } }
+
+    /* ── Sections ── */
+    section { padding: 5rem 5vw; }
+    .section-label { font-size: .72rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #f97316; margin-bottom: .75rem; }
+    .section-title { font-family: 'Nunito', sans-serif; font-size: clamp(1.5rem, 4vw, 2.2rem); font-weight: 900; color: #1c0900; letter-spacing: -.03em; margin-bottom: 1rem; }
+    .section-sub { font-size: .95rem; color: #6b3f2a; max-width: 520px; line-height: 1.75; }
+    .text-center { text-align: center; }
+    .text-center .section-sub { margin: 0 auto; }
+
+    /* ── Steps ── */
+    .steps-bg { background: #fff; }
+    .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2rem; margin-top: 3.5rem; }
+    .step-card {
+      position: relative; text-align: center; padding: 2rem 1.5rem;
+      background: #fdf6f0; border: 1.5px solid #f0ddd4;
+      border-radius: 20px;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .step-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(249,115,22,.12); }
+    .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, #f97316, #fbbf24);
+      border-radius: 14px;
+      font-family: 'Nunito', sans-serif; font-size: 1.1rem; font-weight: 900; color: #fff;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 12px rgba(249,115,22,.3);
+    }
+    .step-icon { font-size: 2rem; margin-bottom: .75rem; display: block; }
+    .step-title { font-family: 'Nunito', sans-serif; font-size: 1rem; font-weight: 800; color: #1c0900; margin-bottom: .5rem; }
+    .step-desc { font-size: .83rem; color: #6b3f2a; line-height: 1.65; }
+    .step-arrow {
+      position: absolute; right: -1.5rem; top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.2rem; color: #f0ddd4;
+    }
+
+    /* ── Features ── */
+    .features-bg { background: linear-gradient(160deg, #fff8f3, #ffe8d0); }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; margin-top: 3.5rem; }
+    .feature-card {
+      background: rgba(255,255,255,.8);
+      border: 1.5px solid rgba(249,115,22,.15);
+      border-radius: 20px; padding: 1.75rem;
+      backdrop-filter: blur(8px);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .feature-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(249,115,22,.12); }
+    .feature-icon-wrap {
+      width: 52px; height: 52px;
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+      margin-bottom: 1.1rem;
+    }
+    .feature-title { font-family: 'Nunito', sans-serif; font-size: .95rem; font-weight: 800; color: #1c0900; margin-bottom: .5rem; }
+    .feature-desc { font-size: .82rem; color: #6b3f2a; line-height: 1.7; }
+
+    /* ── CTA ── */
+    .cta-bg {
+      background: linear-gradient(135deg, #1c0900 0%, #7c2d00 60%, #c2410c 100%);
+      text-align: center;
+    }
+    .cta-bg .section-label { color: #fb923c; }
+    .cta-bg .section-title { color: #fff; }
+    .cta-bg .section-sub { color: #fcd9b6; }
+    .cta-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 640px; margin: 3rem auto 0; }
+    .cta-card {
+      background: rgba(255,255,255,.08);
+      border: 1.5px solid rgba(255,255,255,.15);
+      border-radius: 20px; padding: 2rem 1.5rem;
+      text-align: center;
+      transition: background .2s;
+    }
+    .cta-card:hover { background: rgba(255,255,255,.13); }
+    .cta-card-icon { font-size: 2.5rem; margin-bottom: 1rem; display: block; }
+    .cta-card-title { font-family: 'Nunito', sans-serif; font-size: 1rem; font-weight: 800; color: #fff; margin-bottom: .5rem; }
+    .cta-card-desc { font-size: .8rem; color: #fcd9b6; line-height: 1.65; margin-bottom: 1.25rem; }
+
+    /* ── Footer ── */
+    footer {
+      background: #1c0900; color: #b07d65;
+      padding: 2.5rem 5vw;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+    }
+    .footer-brand { display: flex; align-items: center; gap: .6rem; }
+    .footer-brand-name { font-family: 'Nunito', sans-serif; font-weight: 900; color: #fcd9b6; }
+    .footer-text { font-size: .78rem; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .cta-cards { grid-template-columns: 1fr; }
+      .hero-stats { gap: 1.5rem; }
+      .nav-actions .btn-ghost { display: none; }
+      .step-arrow { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ──────────────────────────────────────── -->
+<nav>
+  <a class="nav-brand" href="./landing.html">
+    <div class="nav-brand-icon">🎯</div>
+    <span class="nav-brand-name">Match Point</span>
+  </a>
+  <div class="nav-actions">
+    <a class="btn btn-ghost" href="./index.html">로그인</a>
+    <a class="btn btn-primary" href="./index.html">시작하기</a>
+  </div>
+</nav>
+
+<!-- ── Hero ─────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-badge">
+    <span></span> AI 기반 멘토 매칭 플랫폼
+  </div>
+  <h1 class="title-font">
+    커리어의 <span class="highlight">전환점</span>을<br>
+    나에게 딱 맞는 멘토와 함께
+  </h1>
+  <p>관심 분야를 입력하면 AI가 가장 잘 맞는 멘토를 추천해드립니다.<br>일정 충돌 없이 편리하게 상담을 예약하세요.</p>
+  <div class="hero-actions">
+    <a class="btn btn-primary btn-xl" href="./index.html">멘토 찾기 시작</a>
+    <a class="btn btn-outline btn-xl" href="./index.html">멘토로 참여하기</a>
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hero-stat-num">AI</div>
+      <div class="hero-stat-label">의미 기반 매칭</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">2h</div>
+      <div class="hero-stat-label">기본 상담 시간</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">100%</div>
+      <div class="hero-stat-label">온라인 상담</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Steps ─────────────────────────────────────── -->
+<section class="steps-bg">
+  <div class="text-center">
+    <div class="section-label">How it works</div>
+    <h2 class="section-title title-font">3단계로 끝나는 멘토링</h2>
+    <p class="section-sub">복잡한 절차 없이 간단하게 신청하고, AI가 최적의 멘토를 연결해드립니다.</p>
+  </div>
+  <div class="steps-grid">
+    <div class="step-card">
+      <span class="step-icon">✏️</span>
+      <div class="step-num">1</div>
+      <div class="step-title">멘토링 신청</div>
+      <p class="step-desc">관심 분야와 상담 주제, 희망 일정을 입력해 신청합니다.</p>
+      <div class="step-arrow">→</div>
+    </div>
+    <div class="step-card">
+      <span class="step-icon">🤝</span>
+      <div class="step-num">2</div>
+      <div class="step-title">AI 멘토 매칭</div>
+      <p class="step-desc">Amazon Bedrock AI가 관심 분야와 의미적으로 가장 잘 맞는 멘토 후보를 선별합니다.</p>
+      <div class="step-arrow">→</div>
+    </div>
+    <div class="step-card">
+      <span class="step-icon">🎥</span>
+      <div class="step-num">3</div>
+      <div class="step-title">온라인 상담</div>
+      <p class="step-desc">일정이 확정되면 Zoom, Google Meet 등으로 편리하게 상담합니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── Features ──────────────────────────────────── -->
+<section class="features-bg">
+  <div class="text-center">
+    <div class="section-label">Features</div>
+    <h2 class="section-title title-font">Match Point만의 특징</h2>
+    <p class="section-sub">단순 키워드 매칭을 넘어서, 진짜 필요한 멘토를 찾아드립니다.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon-wrap" style="background:#fff3e8">🧠</div>
+      <div class="feature-title">AI 의미 기반 매칭</div>
+      <p class="feature-desc">"AWS"와 "아마존 클라우드"처럼 표현이 달라도 Amazon Bedrock이 같은 의미임을 이해하고 매칭합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon-wrap" style="background:#ecfdf5">📅</div>
+      <div class="feature-title">일정 충돌 자동 방지</div>
+      <p class="feature-desc">자정을 넘기는 일정까지 정밀하게 계산해 같은 시간대 중복 상담을 방지합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon-wrap" style="background:#faf5ff">📝</div>
+      <div class="feature-title">상담 기록 관리</div>
+      <p class="feature-desc">멘토가 작성한 상담 요약, 후속 과제를 멘티가 언제든 다시 확인할 수 있습니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon-wrap" style="background:#eff6ff">🎥</div>
+      <div class="feature-title">화상 링크 통합</div>
+      <p class="feature-desc">Zoom, Google Meet, Teams 링크를 일정 카드에 바로 등록해 참여 방법을 한눈에 확인합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon-wrap" style="background:#fff7ed">🔄</div>
+      <div class="feature-title">투명한 상태 관리</div>
+      <p class="feature-desc">대기 → 검토 → 확정 → 완료까지 6가지 상태로 신청 현황을 실시간으로 파악합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon-wrap" style="background:#fff1f2">👥</div>
+      <div class="feature-title">운영자 대시보드</div>
+      <p class="feature-desc">멘토별 통계, 상태별 신청 현황, 멘티 이력을 한 화면에서 관리합니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ───────────────────────────────────────── -->
+<section class="cta-bg">
+  <div class="section-label">Get Started</div>
+  <h2 class="section-title title-font">지금 시작해보세요</h2>
+  <p class="section-sub">멘티로 성장하거나, 멘토로 나눌 준비가 되셨나요?</p>
+  <div class="cta-cards">
+    <div class="cta-card">
+      <span class="cta-card-icon">🙋</span>
+      <div class="cta-card-title">멘티로 참여</div>
+      <p class="cta-card-desc">궁금한 분야의 멘토를 찾아 커리어 성장의 발판을 만드세요.</p>
+      <a class="btn btn-primary btn-lg" href="./index.html" style="width:100%">멘토 찾기</a>
+    </div>
+    <div class="cta-card">
+      <span class="cta-card-icon">🎓</span>
+      <div class="cta-card-title">멘토로 참여</div>
+      <p class="cta-card-desc">나의 경험과 지식을 나눠 다음 세대의 성장을 도와주세요.</p>
+      <a class="btn btn-outline btn-lg" href="./index.html" style="width:100%;border-color:#fb923c;color:#fb923c">멘토 등록</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ────────────────────────────────────── -->
+<footer>
+  <div class="footer-brand">
+    <div style="width:28px;height:28px;background:linear-gradient(135deg,#f97316,#fbbf24);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.9rem">🎯</div>
+    <span class="footer-brand-name title-font">Match Point</span>
+  </div>
+  <p class="footer-text">© 2026 Match Point. 멘토링 매칭 플랫폼.</p>
+  <a class="btn btn-primary" href="./index.html" style="padding:.5rem 1.1rem;font-size:.8rem">앱 시작하기</a>
+</footer>
+
+</body>
+</html>
